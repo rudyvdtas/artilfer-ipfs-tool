@@ -1,0 +1,142 @@
+{
+  "project": "Day/Night",
+  "title": "Day/Night Token 83 - Complete Image Collection",
+  "description": "Complete collectie van alle IPFS assets voor Day/Night Token 83, geschikt voor CAR export en individuele pinning.",
+  "version": "1.0",
+  "generated_at": "2026-03-27",
+  "source_root_cid": "bafybeieav35xeqj7rzablnncczdixzmwfu2pocoqnvnkzshwihzpfaokoy",
+  "images_directory_cid": "bafybeie3odyqwusenangzqhjb73syoc2jqau4fmhkanapkrppxpwyfgkwu",
+  "source_gateway": "https://w3s.link/ipfs/bafybeieav35xeqj7rzablnncczdixzmwfu2pocoqnvnkzshwihzpfaokoy/",
+  "counts": {
+    "total_files": 16,
+    "top_level_files": 3,
+    "image_files": 13
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "type": "file",
+      "cid": "bafkreiftsw32miuqot6ujgswkbgagkm2afevapj3pkl3s7bs2tsw2d25pu",
+      "size_bytes": 3086,
+      "role": "documentation"
+    },
+    {
+      "path": "cids.txt",
+      "type": "file",
+      "cid": "bafkreidb4k76j3g2hr4qcyeykdlxp27nigcipms4ina4cwurrjivsmfxd4",
+      "size_bytes": 697,
+      "role": "inventory"
+    },
+    {
+      "path": "index.json",
+      "type": "file",
+      "cid": "bafkreighcfkjjozgybei7mjfmzqvc2ixaafuhfsm4k4ydc7li2xgzloqry",
+      "size_bytes": 5953,
+      "role": "metadata"
+    },
+    {
+      "path": "images/main_image.png",
+      "type": "image",
+      "cid": "QmWz4KUunC9Qb6eSy82GiTeWdU9Egrpj2RQNHrf197EQC4",
+      "size_bytes": 4962968,
+      "role": "main_image",
+      "description": "Hoofdafbeelding van het Day/Night token"
+    },
+    {
+      "path": "images/base_day.png",
+      "type": "image",
+      "cid": "QmQV9TdBKphPFSNUmEXABVmqYvZUoRDp2L8esSKkt5hMGU",
+      "size_bytes": 859999,
+      "role": "layer_image",
+      "description": "Layer 'base' - day variant"
+    },
+    {
+      "path": "images/base_night.png",
+      "type": "image",
+      "cid": "QmZh9ZddFGHqJs6obsk1W4j4oNVhswTNotCnotcN1iMqw3",
+      "size_bytes": 1797572,
+      "role": "layer_image",
+      "description": "Layer 'base' - night variant"
+    },
+    {
+      "path": "images/Skeleton_day.png",
+      "type": "image",
+      "cid": "QmeVc5cdAJMqgaQvuhK6qw3ygN7zSjA1rMSh6UZWG1TXMm",
+      "size_bytes": 1703884,
+      "role": "layer_image",
+      "description": "Layer 'Skeleton' - day variant"
+    },
+    {
+      "path": "images/Skeleton_night.png",
+      "type": "image",
+      "cid": "Qmdpd7DzLQU7CRLdpMvHcyQDVwPUyc2Yj2dnHHSR3Y1cdj",
+      "size_bytes": 1546725,
+      "role": "layer_image",
+      "description": "Layer 'Skeleton' - night variant"
+    },
+    {
+      "path": "images/Portrait_day.png",
+      "type": "image",
+      "cid": "Qma2VUtypMjhXmLUagmweqLwZeLAZdcYtosVruJ6Wzymfw",
+      "size_bytes": 978149,
+      "role": "layer_image",
+      "description": "Layer 'Portrait' - day variant"
+    },
+    {
+      "path": "images/Portrait_night.png",
+      "type": "image",
+      "cid": "QmVNmchsUhZvc32jT8XgDZHGaAmcigwwkHHc5PAZvpcNiR",
+      "size_bytes": 2491893,
+      "role": "layer_image",
+      "description": "Layer 'Portrait' - night variant"
+    },
+    {
+      "path": "images/3Heads_day.png",
+      "type": "image",
+      "cid": "QmPvKNJ63kJwAKP7gvwtzNacKtQTm1KKvuAFKYq2gDtTob",
+      "size_bytes": 706898,
+      "role": "layer_image",
+      "description": "Layer '3Heads' - day variant"
+    },
+    {
+      "path": "images/3Heads_night.png",
+      "type": "image",
+      "cid": "QmaZjN89B3PXUk5ivSbbF5TNsxcPFW7zPfPofsYL6xreP4",
+      "size_bytes": 1682407,
+      "role": "layer_image",
+      "description": "Layer '3Heads' - night variant"
+    },
+    {
+      "path": "images/FloatingHead_day.png",
+      "type": "image",
+      "cid": "QmY2v4GKKbvHNnWHBPyn6SQBEw35WFUREHNbkY94UssHMS",
+      "size_bytes": 139014,
+      "role": "layer_image",
+      "description": "Layer 'FloatingHead' - day variant"
+    },
+    {
+      "path": "images/FloatingHead_night.png",
+      "type": "image",
+      "cid": "QmQ3h4vL1uuVa4wixgK6sGE7bRRfimvq4tA1Q25Uh71uu3",
+      "size_bytes": 145112,
+      "role": "layer_image",
+      "description": "Layer 'FloatingHead' - night variant"
+    },
+    {
+      "path": "images/Mary_1_day_sweet_Mary_with_all_her_Eyes.png",
+      "type": "image",
+      "cid": "QmY1oVWXSdP6vrsV2shiNrhC3tgYdcUJ1K24KFbtAbMDQL",
+      "size_bytes": 566322,
+      "role": "layer_image",
+      "description": "Layer 'Mary' - 1 day sweet Mary with all her Eyes variant"
+    },
+    {
+      "path": "images/Mary_1_night_sweet_mary_with_all_her_eyes_and_beams.png",
+      "type": "image",
+      "cid": "QmYGaxorcEe3GadcMQHsQYfHeEArTUCQ9Ad1sb4PrRrb1M",
+      "size_bytes": 698043,
+      "role": "layer_image",
+      "description": "Layer 'Mary' - 1 night sweet mary with all her eyes and beams variant"
+    }
+  ]
+}

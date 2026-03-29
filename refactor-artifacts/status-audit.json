@@ -1,0 +1,36 @@
+{
+  "file": "src/routes/api/scan/[jobId]/status/+server.js",
+  "issues_found": [
+    {
+      "issue": "duplicate exportReadiness property in ready-report response",
+      "severity": "high",
+      "context": "exportReadiness is set to null and later overwritten with report.exportReadiness ?? null"
+    },
+    {
+      "issue": "response object indentation suggests malformed/accidentally duplicated field",
+      "severity": "medium",
+      "context": "The first exportReadiness entry appears before itemCount/totalSize/rootCid fields"
+    },
+    {
+      "issue": "response shape differs between ready-report branch and non-ready branch",
+      "severity": "medium",
+      "context": "ready branch includes itemCount, totalSize, rootCid, summary, manifest, items, archiveFiles"
+    }
+  ],
+  "safe_fixes": [
+    "remove duplicate exportReadiness field",
+    "consolidate status response shape so exportReadiness is defined once",
+    "verify ready/non-ready branches return compatible payloads"
+  ],
+  "impact_radius": [
+    "src/routes/api/scan/stream/+server.js",
+    "src/routes/+page.svelte",
+    "frontend state reducer",
+    "loadReport()/report shape expectations"
+  ],
+  "validation": [
+    "run lint on the status endpoint file",
+    "inspect JSON response for duplicate fields",
+    "check frontend consumers for shape assumptions"
+  ]
+}
