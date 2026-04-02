@@ -250,7 +250,7 @@ function deriveNameHint(fetched, ref, index) {
 }
 
 /**
- * Serialize scan result for disk storage (strip bytes).
+ * Serialize scan result for disk storage (preserve bytes as base64).
  * @param {ScanResult} result
  * @returns {object}
  */
@@ -264,7 +264,10 @@ export function serializeForStorage(result) {
       path: f.path,
       cid: f.cid,
       size: f.bytes?.length || 0,
-      // bytes intentionally omitted for disk storage
+      // ✅ NEW: Store bytes as base64 for later retrieval
+      bytes: f.bytes 
+        ? Buffer.from(f.bytes).toString('base64')
+        : null,
     })),
     summary: result.summary,
   }

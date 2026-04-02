@@ -98,6 +98,10 @@ export async function loadReport(reportId) {
       path: file.path || file.archivePath || file.archive_path || null,
       size: file.size ?? file.sizeBytes ?? file.size_bytes ?? (file.bytes?.length || 0),
       cid: file.cid || null,
+      // ✅ NEW: Decode bytes from base64 back to Buffer
+      bytes: file.bytes && typeof file.bytes === 'string'
+        ? Buffer.from(file.bytes, 'base64')
+        : (file.bytes instanceof Uint8Array ? file.bytes : null),
     }))
   }
 

@@ -8,12 +8,20 @@ export function normalizeCarFile(file) {
   }
 
   // ✅ Bytes now optional - will fetch from IPFS if not available
+  // ✅ Support Buffer (from base64 decode) and Uint8Array
+  let bytes = null
+  if (file.bytes) {
+    if (file.bytes instanceof Buffer) {
+      bytes = file.bytes
+    } else if (file.bytes instanceof Uint8Array) {
+      bytes = Buffer.from(file.bytes)
+    }
+  }
+
   return {
     path: String(file.path || '').trim(),
     cid: file.cid,
-    bytes: file.bytes instanceof Uint8Array 
-      ? file.bytes 
-      : (file.bytes ? Buffer.from(file.bytes) : null),
+    bytes,
   }
 }
 
