@@ -248,19 +248,23 @@
           {/if}
         </div>
 
-        <!-- Step 3: Export -->
+        <!-- Step 3: Export (manifest + CSV first) -->
         <div class="step step-active">
           <div class="step-label">
             <span class="step-number">3</span>
-            <span>Hoe wil je exporteren?</span>
+            <span>Download je manifest</span>
           </div>
+
+          <p class="step-description">
+            Download eerst je manifest en CSV. Controleer alles goed is gescand, dan kun je de CAR genereren voor pinning.
+          </p>
 
           <div class="export-options">
             <div class="export-card">
               <div class="export-card-icon">📄</div>
               <div class="export-card-info">
                 <strong>manifest.json</strong>
-                <p>Alle metadata en CID-informatie als JSON-bestand.</p>
+                <p>Alle metadata en CID-structuur als JSON.</p>
               </div>
               <button
                 class="btn btn-secondary"
@@ -274,8 +278,8 @@
             <div class="export-card">
               <div class="export-card-icon">📊</div>
               <div class="export-card-info">
-                <strong>{result.metadata?.title || 'collectie'}.csv</strong>
-                <p>CID-lijst klaar voor "Import from IPFS" in Pinata.</p>
+                <strong>ready2pin.csv</strong>
+                <p>CID-lijst klaar voor import in Pinata.</p>
               </div>
               <button
                 class="btn btn-secondary"
@@ -285,19 +289,33 @@
                 {exporting === 'csv' ? 'Bezig…' : 'Download'}
               </button>
             </div>
+          </div>
+        </div>
 
+        <!-- Step 4: CAR Export (on demand) -->
+        <div class="step step-active">
+          <div class="step-label">
+            <span class="step-number">4</span>
+            <span>Klaar om te pinnen?</span>
+          </div>
+
+          <p class="step-description">
+            Nadat je manifest en CSV hebt gevalideerd, klik hier om de complete Merkle tree als CAR-bestand te genereren.
+          </p>
+
+          <div class="export-options">
             <div class="export-card export-card-featured">
               <div class="export-card-icon">📦</div>
               <div class="export-card-info">
                 <strong>{result.metadata?.title || 'collectie'}.car</strong>
-                <p>Volledige Merkle tree — pin de complete NFT of collectie inclusief alle assets op Pinata.</p>
+                <p>Volledige DAG met alle assets — klaar voor Pinata of je eigen IPFS node.</p>
               </div>
               <button
                 class="btn btn-primary"
                 onclick={() => download('car')}
                 disabled={!!exporting}
               >
-                {exporting === 'car' ? 'Bezig…' : 'Download CAR'}
+                {exporting === 'car' ? 'Bezig…' : 'Genereer CAR'}
               </button>
             </div>
           </div>
@@ -396,6 +414,13 @@
     font-size: 0.75rem;
     font-weight: 700;
     flex-shrink: 0;
+  }
+
+  .step-description {
+    font-size: 0.9rem;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0 0 8px;
   }
 
   /* ─── Input ──────────────────────────────────────── */

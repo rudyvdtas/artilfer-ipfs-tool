@@ -12,13 +12,13 @@ import { Buffer } from 'node:buffer'
 
 const GATEWAYS = [
   'https://w3s.link/ipfs',
-  'https://ipfs.io/ipfs',
-  'https://dweb.link/ipfs',
   'https://cloudflare-ipfs.com/ipfs',
   'https://gateway.pinata.cloud/ipfs',
+  'https://ipfs.io/ipfs',
+  'https://dweb.link/ipfs',
 ]
 
-const FETCH_TIMEOUT_MS = 15_000
+const FETCH_TIMEOUT_MS = 8_000  // ✅ Reduced for faster failover
 const MAX_TEXT_LENGTH = 256 * 1024
 
 // ── CID Parsing ──
@@ -82,21 +82,22 @@ export function resolve(raw) {
 }
 
 /**
- * Fetch content from IPFS gateways with fallback + timeout.
+ * Fetch content from IPFS gateways with parallel racing.
+ * First successful gateway wins, others are cancelled.
  * @param {string} cid
  * @param {string} [path='']
  * @returns {Promise<{ ok: boolean, bytes?: Buffer, text?: string, json?: any, contentType?: string, url?: string, error?: string }>}
  */
 export async function fetchCid(cid, path = '') {
   const suffix = `${cid}${path}`
-  let lastError = null
 
-  for (const gateway of GATEWAYS) {
+  // ✅ RACE ALL GATEWAYS IN PARALLEL (not sequential)
+  const fetchPromises = GATEWAYS.map(async (gateway) => {
     const url = `${gateway}/${suffix}`
-    try {
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
+    try {
       const response = await fetch(url, {
         headers: { accept: 'application/json,text/plain,*/*' },
         signal: controller.signal,
@@ -120,11 +121,24 @@ export async function fetchCid(cid, path = '') {
 
       return { ok: true, url, bytes, text, json, contentType }
     } catch (err) {
-      lastError = err
+      throw err
+    } finally {
+      clearTimeout(timer)
+    }
+  })
+
+  // Use Promise.allSettled to handle all rejections properly
+  const results = await Promise.allSettled(fetchPromises)
+  
+  // Find first successful response
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value?.ok) {
+      return result.value
     }
   }
 
-  return { ok: false, error: lastError?.message || 'All gateways failed' }
+  // All failed
+  return { ok: false, error: 'All gateways failed' }
 }
 
 // ── Reference Discovery ──
