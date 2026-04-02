@@ -11,7 +11,7 @@ const MAX_ITEMS = 2000
 const MAX_ITERATIONS = 500
 const MAX_DISCOVERED_PER_ITEM = 25      // default cap per item
 const MAX_DISCOVERED_ROOT = 1000        // no effective cap for root Async Art JSON
-// const MAX_ARCHIVE_BYTES = 256 * 1024  // REMOVED: was blocking large files from CAR export
+// const MAX_ARCHIVE_BYTES = 256 * 1024  // REMOVED
 
 /**
  * @typedef {Object} TreeNode
