@@ -7,8 +7,15 @@
 <script>
   import MetadataCard from '$lib/components/MetadataCard.svelte'
   import MerkleTree from '$lib/components/MerkleTree.svelte'
+  import NFTChecker from '$lib/components/NFTChecker.svelte'
+  import JobsList from '$lib/components/JobsList.svelte'
 
-  // ─── State ───────────────────────────────────────────
+  // ─── Tab state ────────────────────────────────────────
+
+  /** @type {'scanner' | 'nft-checker' | 'jobs'} */
+  let activeTab = 'nft-checker'
+
+  // ─── Scanner state ────────────────────────────────────
 
   /** @type {'input' | 'scanning' | 'result' | 'error'} */
   let step = 'input'
@@ -143,7 +150,7 @@
   }
 
   function onKeydown(event) {
-    if (event.key === 'Enter' && (step === 'input' || step === 'error')) startScan()
+    if (activeTab === 'scanner' && event.key === 'Enter' && (step === 'input' || step === 'error')) startScan()
   }
 </script>
 
@@ -165,6 +172,38 @@
       <p class="header-sub">Scan een CID, bekijk de Merkle tree, exporteer als manifest, CSV of CAR-bundel.</p>
     </header>
 
+    <!-- ── Tabs ───────────────────────────────────── -->
+    <nav class="tabs" aria-label="Navigatie">
+      <button
+        class="tab"
+        class:active={activeTab === 'nft-checker'}
+        onclick={() => (activeTab = 'nft-checker')}
+      >
+        🌍 NFT Wallet Checker
+      </button>
+      <button
+        class="tab"
+        class:active={activeTab === 'scanner'}
+        onclick={() => (activeTab = 'scanner')}
+      >
+        🔗 Direct CID Scan
+      </button>
+      <button
+        class="tab"
+        class:active={activeTab === 'jobs'}
+        onclick={() => (activeTab = 'jobs')}
+      >
+        📊 Job History
+      </button>
+    </nav>
+
+    <!-- ── Tab: NFT Checker ───────────────────────── -->
+    {#if activeTab === 'nft-checker'}
+      <NFTChecker />
+    {/if}
+
+    <!-- ── Tab: CID Scanner ───────────────────────── -->
+    {#if activeTab === 'scanner'}
     <!-- ── Wizard ─────────────────────────────────── -->
     <div class="wizard">
 
@@ -323,6 +362,15 @@
       {/if}
 
     </div>
+    {/if}
+
+    <!-- ── Tab: Job History ───────────────────────── -->
+    {#if activeTab === 'jobs'}
+      <div class="step">
+        <JobsList />
+      </div>
+    {/if}
+
   </div>
 </div>
 
@@ -644,6 +692,48 @@
   .btn-small {
     font-size: 0.78rem;
     padding: 6px 14px;
+  }
+
+  /* ─── Tabs ───────────────────────────────────────── */
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1.5px solid rgba(148,163,184,0.18);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #94a3b8;
+    border-bottom: 2.5px solid transparent;
+    margin-bottom: -1.5px;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab:hover {
+    color: #0f172a;
+  }
+
+  .tab.active {
+    color: #0f172a;
+    border-bottom-color: #0f172a;
+  }
+
+  @media (max-width: 500px) {
+    .tabs {
+      overflow-x: auto;
+    }
+    .tab {
+      font-size: 0.8rem;
+      padding: 8px 12px;
+    }
   }
 
   /* ─── Responsive ─────────────────────────────────── */

@@ -91,10 +91,16 @@ export function resolve(raw) {
 export async function fetchCid(cid, path = '') {
   const suffix = `${cid}${path}`
 
-  // ✅ RACE ALL GATEWAYS IN PARALLEL (not sequential)
-  const fetchPromises = GATEWAYS.map(async (gateway) => {
+  // ✅ TRUE RACE: first successful gateway wins and all others are cancelled immediately.
+  // Using a shared AbortController per gateway + a manual "winner" flag avoids
+  // waiting for slow gateways after the first success.
+  const controllers = GATEWAYS.map(() => new AbortController())
+
+  let resolved = false
+
+  const fetchPromises = GATEWAYS.map(async (gateway, i) => {
     const url = `${gateway}/${suffix}`
-    const controller = new AbortController()
+    const controller = controllers[i]
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
     try {
@@ -107,6 +113,16 @@ export async function fetchCid(cid, path = '') {
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
       const bytes = Buffer.from(await response.arrayBuffer())
+      clearTimeout(timer)
+
+      // ✅ Cancel all other in-flight requests as soon as we have a result
+      if (!resolved) {
+        resolved = true
+        for (let j = 0; j < controllers.length; j++) {
+          if (j !== i) controllers[j].abort()
+        }
+      }
+
       const contentType = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase()
 
       const text = bytes.length <= MAX_TEXT_LENGTH
@@ -121,24 +137,18 @@ export async function fetchCid(cid, path = '') {
 
       return { ok: true, url, bytes, text, json, contentType }
     } catch (err) {
-      throw err
-    } finally {
       clearTimeout(timer)
+      throw err
     }
   })
 
-  // Use Promise.allSettled to handle all rejections properly
-  const results = await Promise.allSettled(fetchPromises)
-  
-  // Find first successful response
-  for (const result of results) {
-    if (result.status === 'fulfilled' && result.value?.ok) {
-      return result.value
-    }
+  // Use Promise.any to get the first successful result (true race semantics)
+  try {
+    return await Promise.any(fetchPromises)
+  } catch {
+    // All gateways failed (AggregateError)
+    return { ok: false, error: 'All gateways failed' }
   }
-
-  // All failed
-  return { ok: false, error: 'All gateways failed' }
 }
 
 // ── Reference Discovery ──
@@ -155,12 +165,16 @@ const REF_KEYS = new Set([
   'uri', 'cid', 'CID', 'link', 'href', 'tokenURI', 'tokenUri', 'url',
   'reference', 'image', 'animation_url', 'external_url', 'image_url',
   'preview_media_file', 'media',
+  // ✅ Tezos / OBJKT / hic et nunc / fxhash fields
+  'artifactUri', 'displayUri', 'thumbnailUri', 'assetUri',
 ])
 
 /** Keys that contain nested objects to recurse into */
 const RECURSE_KEYS = new Set([
   'async-attributes', 'async_attributes', 'states', 'options',
   'attributes', 'layout', 'layers', 'properties', 'metadata',
+  // ✅ Tezos formats[] array (OBJKT standard)
+  'formats',
 ])
 
 /**
@@ -332,18 +346,41 @@ export function extractMetadata(json) {
   let artists = ''
   let description = ''
   let image = null
+  let thumbnail = null
 
   for (const obj of candidates) {
     if (!title) title = normalize(obj.name || obj.title || obj.project_name || obj.project || '')
-    if (!artists) artists = normalize(obj.artist || obj.artists || obj.creator || obj.creators || obj.author || obj.authors || '')
+
+    // ✅ Tezos: creators[] is an array of tz-addresses; also support standard fields
+    if (!artists) {
+      const raw = obj.artist || obj.artists || obj.creator || obj.creators ||
+                  obj.author || obj.authors || null
+      if (raw) artists = normalize(raw)
+    }
+
     if (!description) description = normalize(obj.description || obj.about || obj.bio || obj.summary || '')
+
     if (!image) {
-      const img = obj.image || obj.image_url || obj.preview_media_file || obj.media || null
+      // ✅ Tezos priority: displayUri > artifactUri > image > image_url
+      const img = obj.displayUri || obj.artifactUri ||
+                  obj.image || obj.image_url || obj.preview_media_file || obj.media || null
       if (typeof img === 'string' && img.trim()) image = img
+    }
+
+    // ✅ Tezos thumbnailUri
+    if (!thumbnail) {
+      const th = obj.thumbnailUri || obj.thumbnail || obj.thumbnailUrl || null
+      if (typeof th === 'string' && th.trim()) thumbnail = th
     }
   }
 
-  return { title, artists, description, image }
+  // ✅ Also pick best image from formats[] (OBJKT standard)
+  if (!image && Array.isArray(json.formats)) {
+    const display = json.formats.find((f) => f?.fileName?.includes('display') || f?.mimeType?.startsWith('image/'))
+    if (display?.uri) image = display.uri
+  }
+
+  return { title, artists, description, image, thumbnail: thumbnail || null }
 }
 
 function normalize(value) {

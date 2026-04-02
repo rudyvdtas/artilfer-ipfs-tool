@@ -3,272 +3,199 @@
  *
  * Consolidates: workflow.js, summarize.js
  * BFS queue approach, builds parent→child tree, extracts metadata.
+ *
+ * ✅ PHASE 1-5 OPTIMIZATIONS:
+ * - Phase 1: Gateway parallelization in fetchCid() (Promise.race)
+ * - Phase 2: Request deduplication with fetchWithDedup()
+ * - Phase 4: Concurrency limiting with fetchSemaphore (max 5 concurrent)
+ * - Phase 5: Kubo health checks (conditional gateway inclusion)
  */
 
 import { resolve, fetchCid, discoverAllRefs, extractMetadata, guessKind, guessExtension, safeFilename } from './resolver.js'
-
-const MAX_ITEMS = 2000
-const MAX_ITERATIONS = 500
-const MAX_DISCOVERED_PER_ITEM = 25      // default cap per item
-const MAX_DISCOVERED_ROOT = 1000        // no effective cap for root Async Art JSON
-// const MAX_ARCHIVE_BYTES = 256 * 1024  // REMOVED
+import { fetchWithDedup } from './request-cache.js'
+import { fetchSemaphore } from './concurrency.js'
 
 /**
- * @typedef {Object} TreeNode
- * @property {number} id
- * @property {number|null} parentId
- * @property {number} depth
- * @property {string} cid
- * @property {string} path
- * @property {string} canonical
- * @property {string} kind - json | text | html | binary
- * @property {string} contentType
- * @property {string} name
- * @property {number|null} size
- * @property {string} status - ok | error
- * @property {string} notes
- * @property {number[]} children - child node ids
+ * @typedef {{
+ *   cid: string,
+ *   path: string,
+ *   canonical: string,
+ *   name: string,
+ *   kind: string,
+ *   contentType: string,
+ *   size: number,
+ *   bytes?: Buffer,
+ *   text?: string,
+ *   json?: any,
+ *   url?: string,
+ *   children: string[],
+ *   depth: number,
+ *   error?: string,
+ * }} ScanNode
  */
 
 /**
- * @typedef {Object} ScanResult
- * @property {string} rootCid
- * @property {{ title: string, artists: string, description: string, image: string|null }} metadata
- * @property {TreeNode[]} tree
- * @property {{ path: string, cid: string, bytes: Uint8Array }[]} archiveFiles
- * @property {{ totalFiles: number, totalSize: number, successCount: number, failCount: number }} summary
- * @property {Record<string,string>} asyncLabelMap  CID → human-readable label for Async Art
+ * @typedef {{
+ *   rootCid: string,
+ *   nodes: Record<string, ScanNode>,
+ *   metadata: { title: string, artists: string, description: string, image: string|null },
+ *   summary: {
+ *     totalFiles: number,
+ *     totalBytes: number,
+ *     filesByKind: Record<string, number>,
+ *     errors: number,
+ *   },
+ * }} ScanResult
  */
 
-/**
- * Build CID → label map from an Async Art master JSON.
- * Returns {} for non-async NFTs.
- * @param {any} json
- * @param {string} projectName
- * @returns {Record<string, string>}
- */
-function buildAsyncLabelMap(json, projectName) {
-  const map = {}
-  if (!json || typeof json !== 'object') return map
-
-  const isAsync = json.tokenType === 'master' ||
-    json['async-attributes'] || json.async_attributes ||
-    Array.isArray(json?.layout?.layers)
-  if (!isAsync) return map
-
-  // Root metadata CID is set by caller
-  const imageCid = typeof json.image === 'string' ? json.image.replace(/^ipfs:\/\//, '').split('/')[0] : null
-  if (imageCid) map[imageCid] = `${projectName} — Main image`
-
-  const layers = json?.layout?.layers
-  if (!Array.isArray(layers)) return map
-
-  layers.forEach((layer, li) => {
-    const layerLabel = layer?.label || layer?.name || layer?.title || `Layer ${li + 1}`
-    const options = layer?.states?.options
-    if (!Array.isArray(options)) return
-    options.forEach((opt, vi) => {
-      const raw = opt?.uri || opt?.cid || opt?.link || opt?.href
-      if (!raw) return
-      const cid = String(raw).replace(/^ipfs:\/\//, '').split('/')[0]
-      if (!cid) return
-      const variantLabel = opt?.label || opt?.name || opt?.title || `Variant ${vi + 1}`
-      map[cid] = `${projectName} — ${layerLabel} — ${variantLabel}`
-    })
-  })
-
-  return map
-}
+const MAX_NODES = 500
+const MAX_DEPTH = 10
 
 /**
- * Scan an IPFS CID recursively: fetch content, discover nested references,
- * build a Merkle tree, extract metadata.
+ * Scan an IPFS CID recursively (BFS), building a Merkle tree.
  *
- * @param {string} inputCid - Raw CID or IPFS URL from user
- * @param {(progress: { current: number, total: number, status: string }) => void} [onProgress]
+ * @param {string} input - CID, IPFS URI, or gateway URL
+ * @param {(progress: {current: number, total: number}) => void} [onProgress]
  * @returns {Promise<ScanResult>}
  */
-export async function scan(inputCid, onProgress) {
-  const root = resolve(inputCid)
-  if (!root) throw new Error(`Invalid CID or IPFS link: ${inputCid}`)
+export async function scan(input, onProgress) {
+  const rootRef = resolve(input)
+  if (!rootRef) throw new Error(`Cannot resolve input: ${input}`)
 
-  const rootCid = root.cid
-  /** @type {TreeNode[]} */
-  const tree = []
-  /** @type {{ path: string, cid: string, bytes: Uint8Array }[]} */
-  const archiveFiles = []
+  const { cid: rootCid } = rootRef
+
+  /** @type {Record<string, ScanNode>} */
+  const nodes = {}
+
+  // BFS queue: each entry is { cid, path, parentCid, depth }
+  const queue = [{ cid: rootRef.cid, path: rootRef.path, parentCid: null, depth: 0 }]
   const seen = new Set()
-  let metadata = { title: '', artists: '', description: '', image: null }
-  let metadataFound = false
-  /** @type {Record<string, string>} */
-  let asyncLabelMap = {}
+  seen.add(rootRef.canonical)
 
-  // BFS queue: { ref, parentId, depth }
-  const queue = [{ ref: root, parentId: null, depth: 0 }]
-  let iterations = 0
+  let processed = 0
 
-  while (queue.length > 0 && tree.length < MAX_ITEMS) {
-    iterations++
-    if (iterations > MAX_ITERATIONS) {
-      break
-    }
+  while (queue.length > 0 && processed < MAX_NODES) {
+    const { cid, path, parentCid, depth } = queue.shift()
 
-    const { ref, parentId, depth } = queue.shift()
+    processed++
+    onProgress?.({ current: processed, total: Math.max(processed, queue.length + processed) })
 
-    if (seen.has(ref.canonical)) continue
-    seen.add(ref.canonical)
+    // ✅ Phase 2 + 4: Dedup + concurrency-limited fetch
+    const fetched = await fetchSemaphore.run(() =>
+      fetchWithDedup(cid, path, fetchCid)
+    )
 
-    onProgress?.({
-      current: tree.length,
-      total: tree.length + queue.length,
-      status: 'scanning',
-    })
+    const canonical = `ipfs://${cid}${path}`
+    const name = path ? path.split('/').filter(Boolean).pop() || cid : cid
+    const kind = guessKind(fetched.contentType, fetched.text, fetched.json)
+    const ext = guessExtension(fetched.contentType, kind, name)
+    const safeName = safeFilename(`${name}${ext}`)
 
-    // Fetch this CID
-    const fetched = await fetchCid(ref.cid, ref.path)
-
-    const id = tree.length + 1
-    const nameHint = deriveNameHint(fetched, ref, id)
-    const kind = fetched.ok ? guessKind(fetched.contentType, fetched.text, fetched.json) : 'binary'
-    const ext = guessExtension(fetched.contentType, kind, nameHint)
-    const name = nameHint + ext
-
-    /** @type {TreeNode} */
+    /** @type {ScanNode} */
     const node = {
-      id,
-      parentId,
-      depth,
-      cid: ref.cid,
-      path: ref.path,
-      canonical: ref.canonical,
+      cid,
+      path,
+      canonical,
+      name: safeName,
       kind,
       contentType: fetched.contentType || '',
-      name,
-      size: fetched.bytes?.length ?? null,
-      status: fetched.ok ? 'ok' : 'error',
-      notes: fetched.ok ? '' : (fetched.error || 'Fetch failed'),
+      size: fetched.bytes?.length ?? 0,
+      bytes: fetched.bytes,
+      text: fetched.text,
+      json: fetched.json,
+      url: fetched.url,
       children: [],
+      depth,
+      error: fetched.ok ? undefined : (fetched.error || 'fetch failed'),
     }
 
-    tree.push(node)
+    nodes[canonical] = node
 
-    // Update parent's children list
-    if (parentId !== null) {
-      const parent = tree.find(n => n.id === parentId)
-      if (parent) parent.children.push(id)
-    }
-
-    // Extract metadata from first successful JSON
-    if (!metadataFound && fetched.ok && fetched.json) {
-      const m = extractMetadata(fetched.json)
-      if (m.title || m.artists || m.description) {
-        metadata = m
-        metadataFound = true
-      }
-      // Build async-art label map from root JSON and annotate root CID
-      const labelMap = buildAsyncLabelMap(fetched.json, metadata.title || rootCid.slice(0, 12))
-      if (Object.keys(labelMap).length > 0) {
-        asyncLabelMap = labelMap
-        asyncLabelMap[rootCid] = `${metadata.title || rootCid.slice(0, 12)} — Token URI metadata`
+    // Register as child of parent
+    if (parentCid) {
+      const parentNode = nodes[parentCid]
+      if (parentNode && !parentNode.children.includes(canonical)) {
+        parentNode.children.push(canonical)
       }
     }
 
-    // Store ALL files for archive (no size limit — let exporter handle streaming)
-    if (fetched.ok && fetched.bytes) {
-      archiveFiles.push({
-        path: name,
-        cid: ref.cid,
-        bytes: fetched.bytes,
-      })
-    }
-
-    // Discover nested references
-    if (fetched.ok) {
+    // Discover children if fetch succeeded and not too deep
+    if (fetched.ok && depth < MAX_DEPTH) {
       const refs = discoverAllRefs(fetched)
-      // Root-level Async Art JSON can have 100+ layer refs — don't cap it
-      const cap = depth === 0 ? MAX_DISCOVERED_ROOT : MAX_DISCOVERED_PER_ITEM
-      const uniqueRefs = []
-
-      for (const discovered of refs.slice(0, cap)) {
-        if (!seen.has(discovered.canonical) && !uniqueRefs.some(r => r.canonical === discovered.canonical)) {
-          uniqueRefs.push(discovered)
+      for (const ref of refs) {
+        if (!seen.has(ref.canonical)) {
+          seen.add(ref.canonical)
+          queue.push({
+            cid: ref.cid,
+            path: ref.path,
+            parentCid: canonical,
+            depth: depth + 1,
+          })
         }
-      }
-
-      if (uniqueRefs.length > 0) {
-        node.notes = `${uniqueRefs.length} nested reference(s)`
-      }
-
-      for (const discovered of uniqueRefs) {
-        queue.push({ ref: discovered, parentId: id, depth: depth + 1 })
       }
     }
   }
 
-  const successCount = tree.filter(n => n.status === 'ok').length
-  const failCount = tree.filter(n => n.status !== 'ok').length
-  const totalSize = tree.reduce((sum, n) => sum + (n.size || 0), 0)
+  // Extract metadata from root node
+  const rootNode = nodes[`ipfs://${rootCid}${rootRef.path}`]
+  const metadata = extractMetadata(rootNode?.json ?? null)
 
-  onProgress?.({
-    current: tree.length,
-    total: tree.length,
-    status: 'done',
-  })
+  // Build summary
+  const allNodes = Object.values(nodes)
+  const filesByKind = {}
+  let totalBytes = 0
+  let errors = 0
+
+  for (const node of allNodes) {
+    filesByKind[node.kind] = (filesByKind[node.kind] || 0) + 1
+    totalBytes += node.size
+    if (node.error) errors++
+  }
 
   return {
     rootCid,
+    nodes,
     metadata,
-    tree,
-    archiveFiles,
-    asyncLabelMap,
     summary: {
-      totalFiles: tree.length,
-      totalSize,
-      successCount,
-      failCount,
+      totalFiles: allNodes.length,
+      totalBytes,
+      filesByKind,
+      errors,
     },
   }
 }
 
-function deriveNameHint(fetched, ref, index) {
-  // Try to get name from URL path
-  if (fetched?.url) {
-    try {
-      const base = new URL(fetched.url).pathname.split('/').pop()
-      if (base && base !== ref.cid) return base
-    } catch { /* ignore */ }
-  }
-
-  // Try to get name from IPFS path
-  if (ref.path) {
-    const parts = ref.path.split('/')
-    const last = parts[parts.length - 1]
-    if (last) return last
-  }
-
-  return `item-${String(index).padStart(4, '0')}`
-}
-
 /**
- * Serialize scan result for disk storage (preserve bytes as base64).
+ * Serialize scan result for disk storage (strip raw bytes to save space).
+ * The full result (with bytes) stays in memory cache for export.
+ *
  * @param {ScanResult} result
  * @returns {object}
  */
 export function serializeForStorage(result) {
+  const nodes = {}
+  for (const [key, node] of Object.entries(result.nodes)) {
+    nodes[key] = {
+      cid: node.cid,
+      path: node.path,
+      canonical: node.canonical,
+      name: node.name,
+      kind: node.kind,
+      contentType: node.contentType,
+      size: node.size,
+      url: node.url,
+      children: node.children,
+      depth: node.depth,
+      error: node.error,
+      // ⚠️ bytes, text, json intentionally omitted
+    }
+  }
+
   return {
     rootCid: result.rootCid,
+    nodes,
     metadata: result.metadata,
-    tree: result.tree,
-    asyncLabelMap: result.asyncLabelMap || {},
-    archiveFiles: result.archiveFiles.map(f => ({
-      path: f.path,
-      cid: f.cid,
-      size: f.bytes?.length || 0,
-      // ✅ NEW: Store bytes as base64 for later retrieval
-      bytes: f.bytes 
-        ? Buffer.from(f.bytes).toString('base64')
-        : null,
-    })),
     summary: result.summary,
   }
 }
+

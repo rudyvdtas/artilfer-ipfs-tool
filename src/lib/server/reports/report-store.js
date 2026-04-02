@@ -1,96 +1,48 @@
-import fs from 'node:fs/promises'
-import { constants as fsConstants } from 'node:fs'
-import { getReportPath, getReportsDir } from '$lib/server/storage/paths'
+/**
+ * report-store.js — Legacy report store (compatibility shim)
+ *
+ * The new system uses job-store.js + cache.js.
+ * This module bridges the old car/+server.js which still imports loadReport.
+ *
+ * loadReport now loads from the job cache (in-memory) or job store (disk/KV).
+ */
 
-function safeJsonParse(raw) {
-  try {
-    return JSON.parse(raw)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Invalid JSON'
-    const wrapped = new Error(`Corrupt report JSON: ${message}`)
-    wrapped.cause = error
-    throw wrapped
-  }
-}
+import { loadJob } from '$lib/server/ipfs/job-store.js'
+import { cacheGet } from '$lib/server/ipfs/cache.js'
+import { Buffer } from 'node:buffer'
 
-async function ensureReportsDir() {
-  await fs.mkdir(getReportsDir(), { recursive: true })
-}
-
-async function fileExists(filepath) {
-  try {
-    await fs.access(filepath, fsConstants.F_OK)
-    return true
-  } catch {
-    return false
-  }
-}
-
-function resolveReportRootCid(report) {
-  return report?.manifest?.rootCid || report?.rootCid || report?.metadata?.rootCid || null
-}
-
-function normalizeManifest(report) {
-  const metadata = report?.metadata && typeof report.metadata === 'object' ? report.metadata : {}
-  const manifest = report?.manifest && typeof report.manifest === 'object' ? report.manifest : null
-
-  if (manifest && !manifest.name && metadata.title) manifest.name = metadata.title
-  if (manifest && !manifest.description && metadata.description) manifest.description = metadata.description
-  if (manifest && !manifest.artistName && metadata.artists) manifest.artistName = metadata.artists
-  if (manifest && manifest.image == null && metadata.image) manifest.image = metadata.image
-
-  return manifest
-}
-
-export async function saveReport(report) {
-  await ensureReportsDir()
-
-  const reportRootCid = resolveReportRootCid(report)
-  const manifestRootCid = report?.manifest?.rootCid || null
-
-  if (reportRootCid && manifestRootCid && reportRootCid !== manifestRootCid) {
-    throw new Error('Corrupt report JSON: rootCid does not match manifest.rootCid')
-  }
-
-  const normalizedManifest = normalizeManifest(report)
-  if (normalizedManifest || reportRootCid) {
-    report = {
-      ...report,
-      manifest: {
-        ...(normalizedManifest || {}),
-        ...(reportRootCid ? { rootCid: reportRootCid } : {}),
-      },
-    }
-  }
-
-  if (reportRootCid && !report.rootCid) {
-    report = {
-      ...report,
-      rootCid: reportRootCid,
-    }
-  }
-
-  const safeReport = {
-    ...report,
-    items: Array.isArray(report.items) ? report.items.slice(0, 100) : [],
-    archiveFiles: Array.isArray(report.archiveFiles) ? report.archiveFiles.slice(0, 100) : [],
-  }
-  await fs.writeFile(getReportPath(report.reportId), JSON.stringify(safeReport, null, 2), 'utf8')
-  return report
-}
-
+/**
+ * Load a report by ID.
+ * Checks in-memory cache first (has bytes), then falls back to job store (no bytes).
+ *
+ * @param {string} reportId - job ID (e.g. scan_xxxx)
+ * @returns {Promise<object>} report object
+ */
 export async function loadReport(reportId) {
-  const raw = await fs.readFile(getReportPath(reportId), 'utf8')
-  const report = safeJsonParse(raw)
-
-  if (Array.isArray(report.items)) {
-    report.items = report.items.map((item) => ({
-      ...item,
-      path: item.path || item.archivePath || item.archive_path || null,
-      size: item.size ?? item.sizeBytes ?? item.size_bytes ?? null,
-      cid: item.cid || item.canonicalRef?.replace(/^ipfs:\/\//, '').split('/')[0] || null,
-    }))
+  // ✅ Try in-memory cache first (has bytes for CAR export)
+  const cached = cacheGet(reportId)
+  if (cached) {
+    return normalizeReport(cached)
   }
+
+  // ✅ Fall back to job store (no bytes, but has metadata)
+  const job = await loadJob(reportId)
+  if (!job || job.status !== 'ready' || !job.result) {
+    throw new Error(`Report not ready or not found: ${reportId}`)
+  }
+
+  return normalizeReport(job.result)
+}
+
+/**
+ * Normalize a scan result into the report shape expected by car/+server.js.
+ * Decodes base64-encoded bytes back to Buffer if needed.
+ *
+ * @param {object} result
+ * @returns {object}
+ */
+function normalizeReport(result) {
+  const report = { ...result }
 
   if (Array.isArray(report.archiveFiles)) {
     report.archiveFiles = report.archiveFiles.map((file) => ({
@@ -98,42 +50,12 @@ export async function loadReport(reportId) {
       path: file.path || file.archivePath || file.archive_path || null,
       size: file.size ?? file.sizeBytes ?? file.size_bytes ?? (file.bytes?.length || 0),
       cid: file.cid || null,
-      // ✅ NEW: Decode bytes from base64 back to Buffer
+      // Decode bytes from base64 back to Buffer (if serialized to disk)
       bytes: file.bytes && typeof file.bytes === 'string'
         ? Buffer.from(file.bytes, 'base64')
         : (file.bytes instanceof Uint8Array ? file.bytes : null),
     }))
   }
 
-  const reportRootCid = resolveReportRootCid(report)
-
-  if (report.rootCid && report.manifest?.rootCid && report.rootCid !== report.manifest.rootCid) {
-    throw new Error('Corrupt report JSON: rootCid does not match manifest.rootCid')
-  }
-
-  if (!report.rootCid && reportRootCid) {
-    report.rootCid = reportRootCid
-  }
-
-  if (report.manifest) {
-    const normalizedManifest = normalizeManifest(report)
-    report.manifest = {
-      ...normalizedManifest,
-      ...(reportRootCid ? { rootCid: reportRootCid } : {}),
-    }
-  }
-
   return report
-}
-
-export async function deleteReport(reportId) {
-  try {
-    await fs.unlink(getReportPath(reportId))
-  } catch {
-    // ignore missing or unreadable files
-  }
-}
-
-export async function reportExists(reportId) {
-  return fileExists(getReportPath(reportId))
 }
