@@ -30,6 +30,18 @@ function resolveReportRootCid(report) {
   return report?.manifest?.rootCid || report?.rootCid || report?.metadata?.rootCid || null
 }
 
+function normalizeManifest(report) {
+  const metadata = report?.metadata && typeof report.metadata === 'object' ? report.metadata : {}
+  const manifest = report?.manifest && typeof report.manifest === 'object' ? report.manifest : null
+
+  if (manifest && !manifest.name && metadata.title) manifest.name = metadata.title
+  if (manifest && !manifest.description && metadata.description) manifest.description = metadata.description
+  if (manifest && !manifest.artistName && metadata.artists) manifest.artistName = metadata.artists
+  if (manifest && manifest.image == null && metadata.image) manifest.image = metadata.image
+
+  return manifest
+}
+
 export async function saveReport(report) {
   await ensureReportsDir()
 
@@ -40,12 +52,13 @@ export async function saveReport(report) {
     throw new Error('Corrupt report JSON: rootCid does not match manifest.rootCid')
   }
 
-  if (report?.manifest && reportRootCid && !report.manifest.rootCid) {
+  const normalizedManifest = normalizeManifest(report)
+  if (normalizedManifest || reportRootCid) {
     report = {
       ...report,
       manifest: {
-        ...report.manifest,
-        rootCid: reportRootCid,
+        ...(normalizedManifest || {}),
+        ...(reportRootCid ? { rootCid: reportRootCid } : {}),
       },
     }
   }
@@ -98,8 +111,12 @@ export async function loadReport(reportId) {
     report.rootCid = reportRootCid
   }
 
-  if (report.manifest && reportRootCid && !report.manifest.rootCid) {
-    report.manifest.rootCid = reportRootCid
+  if (report.manifest) {
+    const normalizedManifest = normalizeManifest(report)
+    report.manifest = {
+      ...normalizedManifest,
+      ...(reportRootCid ? { rootCid: reportRootCid } : {}),
+    }
   }
 
   return report
