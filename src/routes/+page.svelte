@@ -123,6 +123,14 @@
       </button>
     </nav>
 
+    <footer class="footer">
+      <div class="footer-main">© 2026 ARTFILTER by RutgervanderTas · <a href="mailto:info@artfilter.io">info@artfilter.io</a></div>
+      <div class="footer-socials">
+        <a href="https://x.com/artfilterio" target="_blank" rel="noopener noreferrer" aria-label="artfilterio on X">X</a>
+        <a href="https://x.com/rutgervandertas" target="_blank" rel="noopener noreferrer" aria-label="rutgervandertas on X">X</a>
+      </div>
+    </footer>
+
     <!-- ── Tab: About ───────────────────────── -->
     {#if activeTab === 'about'}
       <div class="step about-page">
@@ -648,6 +656,33 @@
     box-shadow: var(--color-card-shadow);
   }
 
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 4px 0;
+    color: #6a5747;
+    font-size: 0.9rem;
+  }
+
+  .footer a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .footer a:hover {
+    text-decoration: underline;
+  }
+
+  .footer-socials {
+    display: inline-flex;
+    gap: 12px;
+    align-items: center;
+  }
+
   .tab {
     display: inline-flex;
     align-items: center;
@@ -692,6 +727,10 @@
     .tab {
       font-size: 0.8rem;
       padding: 8px 12px;
+    }
+    .footer {
+      flex-direction: column;
+      align-items: flex-start;
     }
   }
 
