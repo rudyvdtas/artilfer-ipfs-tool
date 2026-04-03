@@ -5,10 +5,10 @@ function getRpcUrls() {
   const envRpc = env.ETHEREUM_RPC_URL || process.env.ETHEREUM_RPC_URL
   if (envRpc) urls.push(envRpc)
 
-  const alchemyKey = env.ALCHEMY_API_KEY || process.env.ALCHEMY_API_KEY
+  const alchemyKey = env.ALCHEMY_API_KEY || env.ALCHEMY_KEY || process.env.ALCHEMY_API_KEY || process.env.ALCHEMY_KEY
   if (alchemyKey) urls.push(`https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`)
 
-  const infuraId = env.INFURA_PROJECT_ID || process.env.INFURA_PROJECT_ID
+  const infuraId = env.INFURA_PROJECT_ID || env.INFURA_KEY || process.env.INFURA_PROJECT_ID || process.env.INFURA_KEY
   if (infuraId) urls.push(`https://mainnet.infura.io/v3/${infuraId}`)
 
   // Public fallbacks
