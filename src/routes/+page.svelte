@@ -136,19 +136,6 @@
       </button>
     </nav>
 
-    <footer class="footer">
-      <div class="footer-main">© 2026 ARTFILTER by RutgervanderTas · <a href="mailto:info@artfilter.io">info@artfilter.io</a></div>
-      <div class="footer-socials">
-        {#each socialLinks as social}
-          <a href={social.href} target="_blank" rel="noopener noreferrer" class="social-link" aria-label={social.label}>
-            <img src={social.icon} alt="" aria-hidden="true" class="social-icon" />
-            <span>{social.label}</span>
-          </a>
-        {/each}
-      </div>
-
-    </footer>
-
     <!-- ── Tab: About ───────────────────────── -->
     {#if activeTab === 'about'}
       <div class="step about-page">
@@ -231,6 +218,17 @@
       </div>
     {/if}
 
+    <footer class="footer">
+      <div class="footer-main">© 2026 ARTFILTER by RutgervanderTas · <a href="mailto:info@artfilter.io">info@artfilter.io</a></div>
+      <div class="footer-socials">
+        {#each socialLinks as social}
+          <a href={social.href} target="_blank" rel="noopener noreferrer" class="social-link" aria-label={social.label}>
+            <img src={social.icon} alt="" aria-hidden="true" class="social-icon" />
+            <span>{social.label}</span>
+          </a>
+        {/each}
+      </div>
+    </footer>
 
   </div>
 </div>
