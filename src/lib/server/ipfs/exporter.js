@@ -5,10 +5,9 @@
  * All export formats in one module.
  */
 
-import { CarWriter } from '@ipld/car'
 import { CID } from 'multiformats/cid'
-import { Buffer } from 'node:buffer'
 import { safeFilename } from './resolver.js'
+import { exportCarFromKubo } from './kubo-config.js'
 
 /**
  * Generate a manifest.json from scan result.
@@ -126,59 +125,20 @@ function extensionFromContentType(contentType, kind) {
 }
 
 /**
- * Generate a streaming CAR file from scan result.
- * Uses @ipld/car CarWriter for block-by-block streaming.
+ * Generate a streaming CARv1 file for the given root CID via Kubo dag/export.
  *
- * Reads bytes directly from result.nodes (the in-memory scan result).
- * Only nodes that have bytes fetched are included; nodes that failed
- * gateway fetches are skipped (their error is recorded in node.error).
+ * Kubo fetches all DAG blocks recursively from the IPFS p2p network,
+ * preserving the original block CIDs and UnixFS structure. The stream
+ * is piped directly from Kubo to the caller without buffering in memory.
  *
- * @param {import('./scanner.js').ScanResult} result
+ * @param {string} rootCid
  * @returns {Promise<ReadableStream<Uint8Array>>}
  */
-export async function exportCar(result) {
-  const rootCid = CID.parse(result.rootCid)
+export async function exportCar(rootCid) {
+  // Validate the CID is parseable before sending it to Kubo
+  CID.parse(rootCid)
 
-  // Collect nodes that have bytes in memory (full in-memory scan result only)
-  const files = Object.values(result.nodes || {}).filter(n => n.bytes && n.cid)
-
-  if (files.length === 0) {
-    throw new Error('No fetched file bytes available for CAR export. Re-scan may be needed.')
-  }
-
-  // Root node must be present
-  const hasRoot = files.some(n => n.cid === result.rootCid)
-  if (!hasRoot) {
-    throw new Error(`Root CID ${result.rootCid} was not fetched. Re-scan may be needed.`)
-  }
-
-  const { writer, out } = CarWriter.create([rootCid])
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      const pump = (async () => {
-        for await (const chunk of out) {
-          controller.enqueue(chunk)
-        }
-        controller.close()
-      })().catch(err => controller.error(err))
-
-      try {
-        for (const node of files) {
-          const cid = CID.parse(node.cid)
-          const bytes = node.bytes instanceof Uint8Array ? node.bytes : Buffer.from(node.bytes)
-          await writer.put({ cid, bytes })
-        }
-        await writer.close()
-        await pump
-      } catch (err) {
-        try { await writer.close() } catch { /* ignore */ }
-        controller.error(err)
-      }
-    },
-  })
-
-  return stream
+  return exportCarFromKubo(rootCid)
 }
 
 /**

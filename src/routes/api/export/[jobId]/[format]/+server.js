@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit'
 import { loadJob, jobExists } from '$lib/server/ipfs/job-store.js'
-import { scan } from '$lib/server/ipfs/scanner.js'
 import { exportManifest, exportCsv, exportCar, getExportFilename } from '$lib/server/ipfs/exporter.js'
-import { cacheGet, cacheSet } from '$lib/server/ipfs/cache.js'
 
 export async function GET({ params }) {
   const { jobId, format } = params
@@ -44,31 +42,14 @@ export async function GET({ params }) {
     })
   }
 
-  // CAR export needs bytes — check memory cache first
-  let fullResult = cacheGet(jobId)
-
-  if (!fullResult) {
-    // Bytes not in cache — need to re-scan (rare: only if server restarted)
-    try {
-      fullResult = await scan(job.result.rootCid)
-      cacheSet(jobId, fullResult)
-    } catch (err) {
-      return json({ message: `Re-scan failed: ${err?.message}. Please start a new scan.` }, { status: 500 })
-    }
-  }
-
-  if (!fullResult.archiveFiles?.length) {
-    return json({ message: 'No files available for CAR export.' }, { status: 400 })
-  }
-
   try {
-    const stream = await exportCar(fullResult)
-    const filename = getExportFilename(fullResult, 'car')
+    const stream = await exportCar(job.result.rootCid)
+    const filename = getExportFilename(job.result, 'car')
     return new Response(stream, {
       headers: {
         'content-type': 'application/vnd.ipld.car',
         'content-disposition': `attachment; filename="${filename}"`,
-        'x-archive-root-cid': fullResult.rootCid,
+        'x-archive-root-cid': job.result.rootCid,
       },
     })
   } catch (err) {
