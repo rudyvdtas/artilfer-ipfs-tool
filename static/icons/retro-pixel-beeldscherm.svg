@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel beeldscherm</title>
+  <desc>Pixel-beeldscherm icoon met transparante achtergrond.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+
+  <!-- Monitor -->
+  <g transform="translate(20 35)">
+    <!-- bezel / body -->
+    <rect x="0" y="0" width="160" height="105" rx="0" ry="0" fill="#2f2f2f"/>
+    <rect x="0" y="0" width="160" height="10" fill="#454545"/>
+    <rect x="0" y="95" width="160" height="10" fill="#1f1f1f"/>
+
+    <!-- screen -->
+    <rect x="12" y="12" width="136" height="76" fill="#7fd3ff"/>
+    <rect x="12" y="12" width="136" height="10" fill="#bfefff"/>
+    <rect x="12" y="78" width="136" height="10" fill="#4fb7e6"/>
+
+    <!-- pixel UI lines -->
+    <rect x="22" y="30" width="70" height="6" fill="#0b1536" opacity="0.35"/>
+    <rect x="22" y="44" width="92" height="6" fill="#0b1536" opacity="0.28"/>
+    <rect x="22" y="58" width="55" height="6" fill="#0b1536" opacity="0.25"/>
+    <rect x="22" y="72" width="80" height="6" fill="#0b1536" opacity="0.22"/>
+
+    <!-- power LED -->
+    <rect x="140" y="99" width="6" height="6" fill="#65f08a"/>
+  </g>
+
+  <!-- Stand -->
+  <g>
+    <rect x="92" y="140" width="16" height="18" fill="#2f2f2f"/>
+    <rect x="86" y="158" width="28" height="8" fill="#1f1f1f"/>
+    <rect x="70" y="166" width="60" height="10" fill="#2f2f2f"/>
+    <rect x="70" y="176" width="60" height="8" fill="#1f1f1f"/>
+  </g>
+</svg>

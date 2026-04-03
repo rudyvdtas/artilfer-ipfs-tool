@@ -517,7 +517,10 @@
 
   <!-- ── Header ──────────────────────────────────── -->
   <div class="checker-header">
-    <h2>NFT Wallet Checker</h2>
+    <div class="header-row">
+      <h2>NFT Wallet Checker</h2>
+      <span class="header-pill">IPFS archive view</span>
+    </div>
     <p class="sub">Enter a wallet address, ENS, or Tezos domain to find and archive IPFS NFTs.</p>
   </div>
 
@@ -783,10 +786,10 @@
       <!-- Export buttons -->
       <div class="export-row">
         <button class="btn btn-secondary" onclick={downloadManifest}>
-          📄 manifest.json
+          📄 manifest
         </button>
         <button class="btn btn-secondary" onclick={downloadCSV}>
-          📋 ready2pin.csv
+          📋 ready2pin
         </button>
       </div>
     </div>
@@ -832,11 +835,36 @@
     gap: 16px;
   }
 
+  .checker-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
   .checker-header h2 {
     font-size: 1.1rem;
     font-weight: 700;
-    margin: 0 0 4px;
+    margin: 0;
     color: #0f172a;
+  }
+
+  .header-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a4f14;
+    background: #fff3df;
+    border: 1px solid rgba(240, 161, 74, 0.35);
+    border-radius: 999px;
+    padding: 3px 8px;
   }
 
   .sub {
@@ -850,14 +878,14 @@
 
   .card {
     background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 20px;
-    padding: 22px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px;
     backdrop-filter: blur(12px);
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+    box-shadow: var(--card-shadow);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
   }
 
   .card-label {
@@ -865,7 +893,7 @@
     align-items: center;
     gap: 10px;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: #0f172a;
   }
 
@@ -873,12 +901,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: #0f172a;
-    color: white;
-    font-size: 0.7rem;
+    background: #1b140e;
+    color: #fff4e6;
+    font-size: 0.75rem;
     font-weight: 700;
     flex-shrink: 0;
   }
@@ -899,20 +927,20 @@
 
   .text-input {
     flex: 1;
-    padding: 11px 14px;
-    border: 1.5px solid rgba(148, 163, 184, 0.3);
+    padding: 12px 16px;
+    border: 2px solid var(--border);
     border-radius: 12px;
-    font-family: var(--font-mono, monospace);
-    font-size: 0.85rem;
-    background: rgba(248, 250, 252, 0.9);
-    color: #0f172a;
-    transition: border-color 0.15s;
+    font-family: var(--mono, monospace);
+    font-size: 0.88rem;
+    background: #fff8eb;
+    color: #1b140e;
+    transition: border-color 0.15s, transform 0.12s;
     min-width: 0;
   }
 
   .text-input:focus {
     outline: none;
-    border-color: #0f172a;
+    border-color: var(--border-accent);
   }
 
   .text-input.is-error {
@@ -931,7 +959,7 @@
   }
 
   .hint code {
-    font-family: var(--font-mono, monospace);
+    font-family: var(--mono, monospace);
     background: rgba(148, 163, 184, 0.12);
     padding: 0.1em 0.35em;
     border-radius: 4px;
@@ -1074,7 +1102,7 @@
 
   .nft-card {
     position: relative;
-    border: 1.5px solid rgba(148, 163, 184, 0.2);
+    border: 2px solid rgba(148, 163, 184, 0.16);
     border-radius: 14px;
     padding: 10px;
     cursor: pointer;
@@ -1092,7 +1120,7 @@
   }
 
   .nft-card.is-selected {
-    border-color: #0f172a;
+    border-color: #1b140e;
     background: rgba(15, 23, 42, 0.04);
   }
 
@@ -1112,8 +1140,8 @@
   }
 
   .checkbox.checked {
-    background: #0f172a;
-    border-color: #0f172a;
+    background: #1b140e;
+    border-color: #1b140e;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4l3 3 5-6' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
@@ -1209,7 +1237,7 @@
 
   .progress-bar-fill {
     height: 100%;
-    background: #0f172a;
+    background: #1b140e;
     border-radius: 999px;
     transition: width 0.4s ease;
   }
@@ -1338,9 +1366,9 @@
   .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
   .btn-primary {
-    background: #0f172a;
+    background: #1b140e;
     color: white;
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
   }
 
   .btn-secondary {
@@ -1355,12 +1383,12 @@
     font-size: 0.78rem;
   }
 
-  .btn-ghost:hover:not(:disabled) { color: #0f172a; transform: none; }
+  .btn-ghost:hover:not(:disabled) { color: #1b140e; transform: none; }
 
   .btn-ghost.active-filter {
-    color: #0f172a;
-    background: rgba(15, 23, 42, 0.06);
-    border: 1px solid rgba(15, 23, 42, 0.12);
+    color: #1b140e;
+    background: #fff3df;
+    border: 1px solid rgba(240, 161, 74, 0.35);
   }
 
   .btn-small { font-size: 0.75rem; padding: 5px 12px; }

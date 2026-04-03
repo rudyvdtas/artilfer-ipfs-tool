@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel question mark</title>
+  <desc>Pixel-style question mark icon with transparent background.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+
+  <!-- Question mark (pixel) - matches Artfilter accent palette -->
+  <g>
+    <!-- top curve (backwards C / horseshoe) -->
+    <rect x="8" y="0" width="48" height="12" fill="#1d4ed8"/>
+    <rect x="0" y="12" width="12" height="12" fill="#1d4ed8"/>
+    <rect x="52" y="12" width="12" height="12" fill="#1d4ed8"/>
+    <rect x="0" y="24" width="12" height="12" fill="#3b82f6"/>
+    <rect x="52" y="24" width="12" height="12" fill="#3b82f6"/>
+    <rect x="12" y="36" width="12" height="12" fill="#1d4ed8"/>
+    <rect x="40" y="36" width="12" height="12" fill="#1d4ed8"/>
+    <!-- stem -->
+    <rect x="24" y="48" width="16" height="36" fill="#3b82f6"/>
+    <rect x="28" y="48" width="8" height="12" fill="#60a5fa"/>
+    <!-- dot -->
+    <rect x="28" y="84" width="8" height="8" fill="#1d4ed8"/>
+  </g>
+</svg>

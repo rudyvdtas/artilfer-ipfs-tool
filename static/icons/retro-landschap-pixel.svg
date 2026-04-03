@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel landschap (nineties)</title>
+  <desc>Pixelated 1200x400 retro landscape with key, house, tree, suitcase and magnifying glass.</desc>
+
+  <defs>
+    <style>
+      /* Crisp pixel look */
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+
+    <!-- Soften palette: slightly less saturation + lifted darks -->
+    <filter id="softenPalette" x="0" y="0" width="1200" height="400" filterUnits="userSpaceOnUse">
+      <feColorMatrix type="saturate" values="0.92"/>
+      <feComponentTransfer>
+        <feFuncR type="linear" slope="0.98" intercept="0.012"/>
+        <feFuncG type="linear" slope="0.98" intercept="0.012"/>
+        <feFuncB type="linear" slope="0.98" intercept="0.012"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+
+  <g filter="url(#softenPalette)">
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1200" height="400" fill="#9fd8ff"/>
+  <!-- Sky bands (day) -->
+  <rect x="0" y="0" width="1200" height="70" fill="#bfe7ff"/>
+  <rect x="0" y="70" width="1200" height="70" fill="#a9ddff"/>
+  <rect x="0" y="140" width="1200" height="70" fill="#95d2ff"/>
+  <rect x="0" y="210" width="1200" height="50" fill="#86c9ff"/>
+
+  <!-- Clouds (pixel), drifting -->
+  <g>
+    <!-- cloud 1 -->
+    <g opacity="0.95">
+      <animateTransform attributeName="transform" type="translate" dur="38s" repeatCount="indefinite" from="-260 0" to="1280 0"/>
+      <g transform="translate(120 55)">
+        <rect x="10" y="20" width="120" height="20" fill="#ffffff"/>
+        <rect x="0" y="30" width="160" height="20" fill="#ffffff"/>
+        <rect x="20" y="10" width="80" height="20" fill="#f3fbff"/>
+        <rect x="30" y="50" width="110" height="10" fill="#d7eefc"/>
+      </g>
+    </g>
+
+    <!-- cloud 2 -->
+    <g opacity="0.9">
+      <animateTransform attributeName="transform" type="translate" dur="52s" repeatCount="indefinite" from="-420 0" to="1380 0"/>
+      <g transform="translate(520 95)">
+        <rect x="20" y="20" width="90" height="20" fill="#ffffff"/>
+        <rect x="0" y="30" width="140" height="20" fill="#ffffff"/>
+        <rect x="30" y="10" width="60" height="20" fill="#f3fbff"/>
+        <rect x="15" y="50" width="110" height="10" fill="#d7eefc"/>
+      </g>
+    </g>
+
+    <!-- cloud 3 -->
+    <g opacity="0.92">
+      <animateTransform attributeName="transform" type="translate" dur="44s" repeatCount="indefinite" from="-360 0" to="1320 0"/>
+      <g transform="translate(880 75)">
+        <rect x="10" y="20" width="100" height="20" fill="#ffffff"/>
+        <rect x="0" y="30" width="140" height="20" fill="#ffffff"/>
+        <rect x="20" y="10" width="70" height="20" fill="#f3fbff"/>
+        <rect x="25" y="50" width="95" height="10" fill="#d7eefc"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Distant mountains -->
+  <polygon points="0,260 120,205 220,235 320,190 430,240 540,200 680,255 820,210 930,245 1040,200 1200,260 1200,310 0,310" fill="#6b85b6"/>
+  <polygon points="0,285 140,235 260,260 360,225 470,275 590,240 720,285 860,245 980,275 1100,235 1200,285 1200,320 0,320" fill="#7e98c6"/>
+
+  <!-- Ground -->
+  <rect x="0" y="280" width="1200" height="120" fill="#3e8b46"/>
+  <!-- Ground highlight bands -->
+  <rect x="0" y="280" width="1200" height="20" fill="#49a052"/>
+  <rect x="0" y="300" width="1200" height="20" fill="#3f9248"/>
+  <rect x="0" y="320" width="1200" height="80" fill="#2f7437"/>
+
+  <!-- Pixel path -->
+  <g>
+    <rect x="480" y="320" width="240" height="20" fill="#b78a5a"/>
+    <rect x="500" y="340" width="200" height="20" fill="#a97b4d"/>
+    <rect x="520" y="360" width="160" height="20" fill="#936a41"/>
+  </g>
+
+  <!-- Plantje on the plateau (ground) -->
+  <g transform="translate(610 196)">
+  <g transform="scale(0.5)">
+    <!-- leaves -->
+    <rect x="100" y="25" width="20" height="10" fill="#2ea043"/>
+    <rect x="90" y="35" width="40" height="10" fill="#2ea043"/>
+    <rect x="80" y="45" width="60" height="10" fill="#2ea043"/>
+    <rect x="90" y="55" width="40" height="10" fill="#2ea043"/>
+    <rect x="100" y="65" width="20" height="10" fill="#2ea043"/>
+
+    <!-- leaf highlights -->
+    <rect x="100" y="35" width="10" height="10" fill="#5be66d"/>
+    <rect x="90" y="45" width="10" height="10" fill="#4fda61"/>
+    <rect x="110" y="45" width="10" height="10" fill="#4fda61"/>
+    <rect x="100" y="55" width="10" height="10" fill="#4fda61"/>
+
+    <!-- stem -->
+    <rect x="108" y="75" width="4" height="28" fill="#2b6b35"/>
+
+    <!-- soil -->
+    <rect x="70" y="103" width="80" height="10" fill="#5b402b"/>
+    <rect x="70" y="113" width="80" height="6" fill="#3f2c1e"/>
+
+    <!-- pot -->
+    <rect x="65" y="119" width="90" height="50" fill="#b85a3d"/>
+    <rect x="65" y="119" width="90" height="10" fill="#d06747"/>
+    <rect x="65" y="158" width="90" height="10" fill="#8f442e"/>
+
+    <!-- pot rim -->
+    <rect x="60" y="111" width="100" height="10" fill="#a34f35"/>
+    <rect x="60" y="111" width="100" height="4" fill="#d06747"/>
+
+    <!-- little label -->
+    <rect x="95" y="139" width="30" height="18" fill="#f3fbff"/>
+    <rect x="98" y="143" width="24" height="4" fill="#86c9ff"/>
+    <rect x="98" y="151" width="16" height="4" fill="#86c9ff"/>
+  </g>
+  </g>
+
+  <!-- Foreground grass pixels for extra depth -->
+  <g opacity="0.9">
+    <rect x="40" y="340" width="10" height="10" fill="#2ea043"/>
+    <rect x="70" y="350" width="10" height="10" fill="#2ea043"/>
+    <rect x="100" y="360" width="10" height="10" fill="#2ea043"/>
+    <rect x="1130" y="345" width="10" height="10" fill="#2ea043"/>
+    <rect x="1100" y="360" width="10" height="10" fill="#2ea043"/>
+    <rect x="1070" y="350" width="10" height="10" fill="#2ea043"/>
+  </g>
+
+  </g>
+</svg>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 170" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel huis</title>
+  <desc>Geisoleerd pixel-huisje met transparante achtergrond.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+
+  <!-- House (pixel) -->
+  <g>
+    <!-- roof -->
+    <polygon points="0,40 90,0 180,40 180,60 0,60" fill="#a83b3b"/>
+    <polygon points="15,40 90,10 165,40 165,50 15,50" fill="#c14a4a"/>
+    <!-- body -->
+    <rect x="20" y="60" width="140" height="110" fill="#e7d8b6"/>
+    <rect x="20" y="60" width="140" height="10" fill="#f0e5c9"/>
+    <!-- door -->
+    <rect x="80" y="105" width="30" height="65" fill="#6b4a2a"/>
+    <rect x="100" y="135" width="5" height="5" fill="#f2d66c"/>
+    <!-- window -->
+    <rect x="40" y="90" width="30" height="25" fill="#3cc7ff"/>
+    <rect x="40" y="90" width="30" height="5" fill="#84e4ff"/>
+    <rect x="54" y="90" width="2" height="25" fill="#0b1536"/>
+    <rect x="40" y="102" width="30" height="2" fill="#0b1536"/>
+    <!-- shadow -->
+    <rect x="20" y="160" width="140" height="10" fill="#d4c59f"/>
+    <!-- outline pixels -->
+    <rect x="20" y="60" width="140" height="5" fill="#111111" opacity="0.45"/>
+    <rect x="20" y="60" width="5" height="110" fill="#111111" opacity="0.45"/>
+    <rect x="155" y="60" width="5" height="110" fill="#111111" opacity="0.45"/>
+    <rect x="20" y="165" width="140" height="5" fill="#111111" opacity="0.45"/>
+  </g>
+</svg>

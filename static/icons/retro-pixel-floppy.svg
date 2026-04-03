@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel floppy</title>
+  <desc>3.5 inch floppy disk icoon in vintage pixel stijl.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+  <g>
+    <!-- plastic body -->
+    <rect x="4" y="8" width="56" height="56" fill="#4a5568"/>
+    <rect x="4" y="8" width="56" height="6" fill="#718096"/>
+    <rect x="4" y="8" width="6" height="56" fill="#718096"/>
+    <rect x="54" y="8" width="6" height="56" fill="#2d3748"/>
+    <rect x="4" y="58" width="56" height="6" fill="#2d3748"/>
+    <!-- metal shutter (bottom) -->
+    <rect x="4" y="52" width="56" height="12" fill="#9ca3af"/>
+    <rect x="4" y="52" width="56" height="3" fill="#d1d5db"/>
+    <rect x="4" y="61" width="56" height="3" fill="#6b7280"/>
+    <!-- label area (dark) -->
+    <rect x="10" y="18" width="44" height="28" fill="#1e293b"/>
+    <rect x="10" y="18" width="44" height="4" fill="#334155"/>
+    <!-- hub (center circle) -->
+    <rect x="24" y="26" width="16" height="16" fill="#64748b"/>
+    <rect x="28" y="30" width="8" height="8" fill="#94a3b8"/>
+    <!-- notch (write protect) -->
+    <rect x="48" y="22" width="4" height="6" fill="#64748b"/>
+    <rect x="48" y="22" width="2" height="6" fill="#94a3b8"/>
+  </g>
+</svg>

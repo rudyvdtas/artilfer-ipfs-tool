@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel user</title>
+  <desc>Pixel-mensje icoon met transparante achtergrond.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+
+  <g>
+    <!-- hair -->
+    <rect x="35" y="5" width="50" height="10" fill="#5b402b"/>
+    <rect x="30" y="15" width="60" height="10" fill="#5b402b"/>
+
+    <!-- head -->
+    <rect x="35" y="25" width="50" height="10" fill="#f0c090"/>
+    <rect x="30" y="35" width="60" height="10" fill="#f0c090"/>
+    <rect x="30" y="45" width="60" height="10" fill="#f0c090"/>
+    <rect x="35" y="55" width="50" height="10" fill="#f0c090"/>
+
+    <!-- eyes -->
+    <rect x="40" y="35" width="10" height="10" fill="#0b1536"/>
+    <rect x="65" y="35" width="10" height="10" fill="#0b1536"/>
+    <!-- eye highlight -->
+    <rect x="42" y="37" width="4" height="4" fill="#ffffff"/>
+    <rect x="67" y="37" width="4" height="4" fill="#ffffff"/>
+
+    <!-- mouth -->
+    <rect x="47" y="50" width="20" height="5" fill="#d4856a"/>
+
+    <!-- neck -->
+    <rect x="50" y="65" width="20" height="10" fill="#e5b080"/>
+
+    <!-- shirt body -->
+    <rect x="20" y="75" width="80" height="10" fill="#3a7bd5"/>
+    <rect x="15" y="85" width="90" height="10" fill="#3a7bd5"/>
+    <rect x="15" y="95" width="90" height="10" fill="#3a7bd5"/>
+    <rect x="15" y="105" width="90" height="10" fill="#2c6abf"/>
+    <!-- shirt highlight -->
+    <rect x="45" y="80" width="30" height="5" fill="#5a9ae5"/>
+
+    <!-- arms -->
+    <rect x="5" y="80" width="10" height="10" fill="#3a7bd5"/>
+    <rect x="0" y="90" width="15" height="10" fill="#f0c090"/>
+    <rect x="105" y="80" width="10" height="10" fill="#3a7bd5"/>
+    <rect x="105" y="90" width="15" height="10" fill="#f0c090"/>
+
+    <!-- pants -->
+    <rect x="25" y="115" width="30" height="10" fill="#2f4858"/>
+    <rect x="65" y="115" width="30" height="10" fill="#2f4858"/>
+    <rect x="25" y="125" width="30" height="10" fill="#263c4a"/>
+    <rect x="65" y="125" width="30" height="10" fill="#263c4a"/>
+
+    <!-- shoes -->
+    <rect x="20" y="135" width="35" height="10" fill="#6b4a2a"/>
+    <rect x="65" y="135" width="35" height="10" fill="#6b4a2a"/>
+    <rect x="20" y="145" width="35" height="10" fill="#5b3e24"/>
+    <rect x="65" y="145" width="35" height="10" fill="#5b3e24"/>
+    <!-- shoe highlight -->
+    <rect x="25" y="137" width="10" height="4" fill="#8b6a4a"/>
+    <rect x="70" y="137" width="10" height="4" fill="#8b6a4a"/>
+  </g>
+</svg>

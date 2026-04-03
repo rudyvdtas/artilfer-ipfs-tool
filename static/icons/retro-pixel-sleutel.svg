@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 60" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel sleutel</title>
+  <desc>Geisoleerde pixel-sleutel met transparante achtergrond.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+
+  <!-- Key (pixel) -->
+  <!-- shifted up by 30 to make viewBox start at y=0 -->
+  <g transform="translate(0 -30)">
+    <!-- head -->
+    <rect x="0" y="30" width="70" height="50" fill="#f2d66c"/>
+    <rect x="10" y="40" width="30" height="30" fill="#0b1536"/>
+    <rect x="15" y="45" width="20" height="20" fill="#162b68"/>
+    <!-- shaft -->
+    <rect x="70" y="45" width="80" height="20" fill="#f2d66c"/>
+    <rect x="150" y="45" width="20" height="20" fill="#f2d66c"/>
+    <!-- teeth -->
+    <rect x="130" y="65" width="10" height="15" fill="#f2d66c"/>
+    <rect x="150" y="65" width="10" height="25" fill="#f2d66c"/>
+    <rect x="170" y="45" width="10" height="35" fill="#f2d66c"/>
+    <!-- shine -->
+    <rect x="75" y="48" width="60" height="5" fill="#ffeaa6"/>
+  </g>
+</svg>

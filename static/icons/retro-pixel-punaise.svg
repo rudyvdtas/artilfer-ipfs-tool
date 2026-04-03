@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel punaise</title>
+  <desc>Pixel punaise/pushpin icoon met transparante achtergrond.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+
+  <!-- Pushpin -->
+  <g transform="translate(40 18)">
+    <!-- shadow -->
+    <rect x="34" y="164" width="52" height="8" fill="#000000" opacity="0.08"/>
+
+    <!-- head (cap) -->
+    <rect x="24" y="18" width="72" height="28" fill="#c14a4a"/>
+    <rect x="30" y="10" width="60" height="10" fill="#a83b3b"/>
+    <rect x="24" y="46" width="72" height="8" fill="#8a2f2f"/>
+
+    <!-- top highlight -->
+    <rect x="34" y="14" width="40" height="4" fill="#e37b7b" opacity="0.95"/>
+
+    <!-- stem -->
+    <rect x="54" y="54" width="12" height="44" fill="#2b3a52"/>
+    <rect x="54" y="54" width="12" height="6" fill="#3f516f"/>
+
+    <!-- collar -->
+    <rect x="40" y="92" width="40" height="14" fill="#f2d66c"/>
+    <rect x="40" y="92" width="40" height="4" fill="#ffeaa6"/>
+
+    <!-- needle -->
+    <rect x="58" y="106" width="4" height="52" fill="#0b1536"/>
+    <rect x="56" y="150" width="8" height="6" fill="#162b68"/>
+
+    <!-- point -->
+    <polygon points="58,158 62,158 60,174" fill="#0b1536"/>
+  </g>
+</svg>
+

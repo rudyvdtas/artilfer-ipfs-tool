@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="auto" preserveAspectRatio="xMidYMid meet">
+  <title>Retro pixel oog</title>
+  <desc>Groot rond kijkend pixel-oog in vintage stijl.</desc>
+  <defs>
+    <style>
+      svg { shape-rendering: crispEdges; image-rendering: pixelated; }
+    </style>
+  </defs>
+  <g>
+    <!-- outer ring (sclera outline) -->
+    <rect x="4" y="4" width="56" height="56" fill="#e8e4d8"/>
+    <rect x="4" y="4" width="56" height="6" fill="#f5f2e8"/>
+    <rect x="4" y="4" width="6" height="56" fill="#f5f2e8"/>
+    <rect x="54" y="4" width="6" height="56" fill="#d8d4c8"/>
+    <rect x="4" y="54" width="56" height="6" fill="#c8c4b8"/>
+    <!-- inner white (sclera) -->
+    <rect x="12" y="12" width="40" height="40" fill="#f5f5dc"/>
+    <rect x="12" y="12" width="40" height="4" fill="#fffef8"/>
+    <!-- iris - large round blue -->
+    <rect x="18" y="18" width="28" height="28" fill="#1d4ed8"/>
+    <rect x="22" y="22" width="20" height="20" fill="#3b82f6"/>
+    <rect x="24" y="24" width="16" height="16" fill="#60a5fa"/>
+    <!-- pupil - round dark center -->
+    <rect x="26" y="26" width="12" height="12" fill="#0b1220"/>
+    <rect x="28" y="28" width="8" height="8" fill="#1e293b"/>
+    <!-- highlight (kijkend) -->
+    <rect x="30" y="22" width="4" height="4" fill="#bfefff"/>
+  </g>
+</svg>
