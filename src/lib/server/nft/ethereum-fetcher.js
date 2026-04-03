@@ -9,47 +9,113 @@
 
 import { env } from '$env/dynamic/private'
 import { fetchContractTokenUri } from './ethereum-token-uri.js'
+import { tryRpc } from '$lib/server/nft/rpc-client.js'
 
 const TIMEOUT_MS = 15_000
 const MAX_NFTS = 500
 
 function getAlchemyKey() {
-  return env.ALCHEMY_API_KEY || process.env.ALCHEMY_API_KEY || ''
+  return (
+    env.ALCHEMY_API_KEY || env.ALCHEMY_KEY || process.env.ALCHEMY_API_KEY || process.env.ALCHEMY_KEY || ''
+  )
 }
 
+/**
+ * Convert gateway URLs (https://gateway.pinata.cloud/ipfs/Qm...) to ipfs:// URIs
+ * so IPFS detection works correctly.
+ * @param {string} uri
+ * @returns {string|null}
+ */
+function normalizeGatewayToIPFS(uri) {
+  if (!uri || typeof uri !== 'string') return null
+  const v = uri.trim()
+
+  // Already an IPFS URI
+  if (v.startsWith('ipfs://')) return v
+
+  // Extract CID from gateway URL patterns
+  const patterns = [
+    /gateway\.pinata\.cloud\/ipfs\/([a-zA-Z0-9]+)/,
+    /cloudflare-ipfs\.com\/ipfs\/([a-zA-Z0-9]+)/,
+    /ipfs\.io\/ipfs\/([a-zA-Z0-9]+)/,
+    /w3s\.link\/ipfs\/([a-zA-Z0-9]+)/,
+    /nft\.storage\/ipfs\/([a-zA-Z0-9]+)/,
+  ]
+
+  for (const pattern of patterns) {
+    const match = v.match(pattern)
+    if (match) return `ipfs://${match[1]}`
+  }
+
+  return v
+}
+
+/**
+ * Normalize an Alchemy NFT API v3 response item to the standard NFT shape.
+ *
+ * Alchemy NFT API v3 schema (replaces v2):
+ *   - tokenUri          → string (raw URI from contract), not { raw, gateway }
+ *   - image             → { originalUrl, cachedUrl, thumbnailUrl, pngUrl, contentType }
+ *   - raw.metadata      → original on-chain metadata JSON
+ *   - contract.address  → contract address
+ *
+ * @param {object} item - Alchemy v3 NFT item
+ * @returns {object}
+ */
 function normalizeAlchemyNFT(item) {
-  const meta = item.metadata || item.rawMetadata || {}
-  const contract = item.contract?.address || item.contractAddress || ''
-  const tokenId = item.tokenId || item.id?.tokenId || ''
-  const tokenURI =
-    item.tokenUri?.raw ||
-    item.tokenUri?.gateway ||
-    meta.token_uri ||
-    null
-  const image =
-    item.media?.[0]?.raw ||
-    item.media?.[0]?.gateway ||
-    meta.image ||
-    meta.image_url ||
-    null
+  // v3: raw on-chain metadata lives under item.raw.metadata
+  // Fallback to item.contract.openSeaMetadata for collection-level data
+  const rawMeta = item.raw?.metadata || {}
+  const contract = item.contract?.address || ''
+  const tokenId = item.tokenId || ''
+
+  // v3: tokenUri is a plain string (the URI returned by tokenURI() on-chain)
+  let tokenURI = typeof item.tokenUri === 'string' ? item.tokenUri.trim() : null
+  // Also check raw metadata fields as fallback
+  if (!tokenURI) tokenURI = rawMeta.token_uri || rawMeta.tokenURI || null
+  // Normalize any gateway URL to ipfs:// so IPFS detection works correctly
+  if (tokenURI) tokenURI = normalizeGatewayToIPFS(tokenURI) || tokenURI
+
+  // v3: image data lives under item.image (object with multiple resolutions)
+  // originalUrl = the raw URI from metadata (may be ipfs://)
+  // cachedUrl   = Alchemy-hosted CDN copy
+  // thumbnailUrl = small Alchemy-hosted thumbnail
+  const imageOriginal = item.image?.originalUrl || rawMeta.image || rawMeta.image_url || null
+  const imageCached   = item.image?.cachedUrl   || null
+  const thumbnailUrl  = item.image?.thumbnailUrl || item.image?.pngUrl || null
+
+  // Prefer the original (may be ipfs://) so IPFS detection fires;
+  // fall back to the Alchemy-cached HTTPS URL for actual display
+  const image     = imageOriginal || imageCached || null
+  const thumbnail = thumbnailUrl  || imageCached || imageOriginal || null
+
   return {
     id: `eth-${contract}-${tokenId}`,
     chain: 'ethereum',
     contract,
     tokenId,
-    name: item.title || meta.name || `Token ${tokenId}`,
+    name: item.name || rawMeta.name || `Token ${tokenId}`,
     image,
-    thumbnail: item.media?.[0]?.thumbnail || null,
+    thumbnail,
     tokenURI,
-    metadata: meta,
+    metadata: rawMeta,
   }
 }
 
+/**
+ * Fetch NFTs via Alchemy NFT API
+ * @param {string} address
+ * @param {string} apiKey
+ * @returns {Promise<Array>}
+ */
 async function fetchWithAlchemy(address, apiKey) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
   const allNFTs = []
   let pageKey = null
+  const alchemyDebug = {}
+
   try {
     do {
       const params = new URLSearchParams({
@@ -58,19 +124,38 @@ async function fetchWithAlchemy(address, apiKey) {
         pageSize: '100',
       })
       if (pageKey) params.set('pageKey', pageKey)
+
       const url = `https://eth-mainnet.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner?${params}`
       const response = await fetch(url, {
         headers: { accept: 'application/json' },
         signal: controller.signal,
       })
+
       if (!response.ok) throw new Error(`Alchemy HTTP ${response.status}`)
+
       const data = await response.json()
-      allNFTs.push(...(data.ownedNfts || []).map(normalizeAlchemyNFT))
+      const items = data.ownedNfts || []
+      
+      // Debug: capture first item (v3 schema fields)
+      if (items.length > 0 && Object.keys(alchemyDebug).length === 0) {
+        const first = items[0]
+        alchemyDebug.apiVersion        = 'v3'
+        alchemyDebug.tokenUri          = typeof first.tokenUri === 'string' ? first.tokenUri.slice(0, 200) : first.tokenUri
+        alchemyDebug.image_originalUrl = first.image?.originalUrl || null
+        alchemyDebug.image_cachedUrl   = first.image?.cachedUrl   || null
+        alchemyDebug.image_thumbnailUrl= first.image?.thumbnailUrl|| null
+        alchemyDebug.raw_metadataKeys  = first.raw?.metadata ? Object.keys(first.raw.metadata) : null
+        alchemyDebug.name              = first.name || null
+      }
+      
+      allNFTs.push(...items.map(normalizeAlchemyNFT))
+
       pageKey = data.pageKey || null
       if (allNFTs.length >= MAX_NFTS) break
     } while (pageKey)
+
     clearTimeout(timer)
-    return allNFTs
+    return { nfts: allNFTs, alchemyDebug, method: 'alchemy' }
   } catch (err) {
     clearTimeout(timer)
     if (err.name === 'AbortError') throw new Error('Alchemy API time-out')
@@ -78,45 +163,63 @@ async function fetchWithAlchemy(address, apiKey) {
   }
 }
 
+/**
+ * Minimal fallback: fetch NFT transfer events for an address using eth_getLogs,
+ * then retrieve tokenURIs via on-chain calls.
+ *
+ * This is limited to ERC-721 (Transfer event) and does not paginate deeply.
+ * It is only used when no Alchemy key is configured.
+ *
+ * @param {string} address
+ * @returns {Promise<Array>}
+ */
 async function fetchWithRPCFallback(address) {
-  const getRpcUrl = () =>
-    env.ETHEREUM_RPC_URL || process.env.ETHEREUM_RPC_URL || 'https://eth.llamarpc.com'
+  // Use tryRpc to attempt multiple providers (env, Alchemy, Infura, public fallbacks)
+
+  // ERC-721 Transfer(address,address,uint256) topic
   const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
   const paddedAddress = `0x${address.replace('0x', '').padStart(64, '0')}`
+
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
   try {
-    const response = await fetch(getRpcUrl(), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      signal: controller.signal,
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'eth_getLogs',
-        params: [{
-          fromBlock: 'earliest',
-          toBlock: 'latest',
-          topics: [TRANSFER_TOPIC, null, paddedAddress],
-        }],
-      }),
-    })
-    clearTimeout(timer)
-    if (!response.ok) throw new Error(`RPC HTTP ${response.status}`)
-    const data = await response.json()
-    if (data.error) throw new Error(data.error.message || 'RPC error')
+    const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getLogs', params: [{
+      fromBlock: 'earliest',
+      toBlock: 'latest',
+      topics: [TRANSFER_TOPIC, null, paddedAddress],
+    }] })
+
+    const { url, json: data } = await tryRpc(body, controller.signal)
+    if (data.error) throw new Error(data.error.message || `RPC error from ${url}: ${JSON.stringify(data.error)}`)
+
     const logs = Array.isArray(data.result) ? data.result : []
+
+    // Deduplicate by contract + tokenId
     const seen = new Set()
     const nfts = []
+
     for (const log of logs.slice(0, MAX_NFTS)) {
       const contract = log.address?.toLowerCase()
       const tokenId = log.topics?.[3] ? BigInt(log.topics[3]).toString() : null
       if (!contract || !tokenId) continue
+
       const key = `${contract}-${tokenId}`
       if (seen.has(key)) continue
       seen.add(key)
+
+      // Fetch tokenURI on-chain
       let tokenURI = null
-      try { tokenURI = await fetchContractTokenUri(contract, tokenId) } catch { /* ignore */ }
+      try {
+        tokenURI = await fetchContractTokenUri(contract, tokenId)
+        // Convert gateway URLs to ipfs:// so IPFS detection works
+        if (tokenURI) {
+          tokenURI = normalizeGatewayToIPFS(tokenURI) || tokenURI
+        }
+      } catch {
+        // ignore — leave tokenURI null
+      }
+
       nfts.push({
         id: `eth-${contract}-${tokenId}`,
         chain: 'ethereum',
@@ -129,6 +232,7 @@ async function fetchWithRPCFallback(address) {
         metadata: {},
       })
     }
+
     return nfts
   } catch (err) {
     clearTimeout(timer)
@@ -137,11 +241,35 @@ async function fetchWithRPCFallback(address) {
   }
 }
 
+/**
+ * Fetch ERC-721/1155 NFTs for an Ethereum address.
+ * Uses Alchemy when ALCHEMY_API_KEY is set, falls back to RPC.
+ *
+ * @param {string} address - Ethereum address (0x...)
+ * @returns {Promise<Array>}
+ */
 export async function fetchEthereumNFTs(address) {
   if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
     throw new Error('Ongeldig Ethereum adres')
   }
+
   const apiKey = getAlchemyKey()
-  if (apiKey) return fetchWithAlchemy(address, apiKey)
-  return fetchWithRPCFallback(address)
+  const isUsingAlchemy = !!apiKey
+  
+  if (isUsingAlchemy) {
+    const result = await fetchWithAlchemy(address, apiKey)
+    // Flatten: return nfts array but preserve debug info in array properties
+    const nfts = result.nfts
+    nfts.debugMethod = 'alchemy'
+    nfts.alchemyDebug = result.alchemyDebug
+    return nfts
+  }
+
+  const result = await fetchWithRPCFallback(address)
+  result.debugMethod = 'rpc'
+  return result
 }
+
+
+
+

@@ -49,8 +49,10 @@ export function buildManifest(jobResult) {
 /**
  * ✅ Build a Pinata-compatible ready2pin.csv from a completed batch job result.
  *
- * Columns: NFT ID, Name, Chain, Contract, Token ID, Metadata CID,
- *          Total Files, Total Bytes, Status
+ * Format: hash,name  (Pinata "Import from IPFS" standard)
+ * - One row per unique CID found across all successful NFT scans.
+ * - Metadata CID and all child CIDs (images, media) are included.
+ * - Duplicate CIDs across NFTs are deduplicated.
  *
  * @param {{ results: Array, summary: object }} jobResult
  * @returns {string} CSV string
@@ -58,49 +60,95 @@ export function buildManifest(jobResult) {
 export function buildReadyToPinCSV(jobResult) {
   const { results = [] } = jobResult
 
-  const headers = [
-    'NFT ID',
-    'Name',
-    'Chain',
-    'Contract',
-    'Token ID',
-    'Metadata CID',
-    'Total Files',
-    'Total Bytes',
-    'Status',
-  ]
-
-  const rows = results.map((r) => {
-    if (r.status === 'error') {
-      return [r.nftId, r.name || '', r.chain || '', '', '', '', '0', '0', `Error: ${r.error}`]
-    }
-    if (r.status === 'skipped') {
-      return [r.nftId, '', r.chain || '', '', '', '', '0', '0', `Skipped: ${r.reason}`]
-    }
-    return [
-      r.nftId,
-      r.name,
-      r.chain,
-      r.contract,
-      r.tokenId,
-      r.metadataCID,
-      r.scan?.summary?.totalFiles ?? 0,
-      r.scan?.summary?.totalBytes ?? 0,
-      'Success',
-    ]
-  })
-
   const escape = (v) => {
     const s = String(v ?? '')
     return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
 
-  const lines = [
-    headers.map(escape).join(','),
-    ...rows.map((row) => row.map(escape).join(',')),
-  ]
+  const rows = ['hash,name']
+  const seen = new Set()
 
-  return lines.join('\n')
+  for (const r of results) {
+    if (r.status !== 'success') continue
+
+    // --- Metadata CID (root of the NFT scan) ---
+    if (r.metadataCID && !seen.has(r.metadataCID)) {
+      seen.add(r.metadataCID)
+      // Use the NFT name as a human-readable label for the metadata CID
+      const label = r.name ? escape(r.name) : ''
+      rows.push(`${r.metadataCID},${label}`)
+    }
+
+    // --- All child CIDs discovered during the scan ---
+    const nodes = r.scan?.nodes ?? {}
+    for (const node of Object.values(nodes)) {
+      if (!node.cid || node.error) continue
+      if (seen.has(node.cid)) continue
+      seen.add(node.cid)
+
+      const name = resolveNodeName(node)
+      rows.push(`${node.cid},${escape(name)}`)
+    }
+  }
+
+  return rows.join('\n')
+}
+
+/**
+ * Derive a clean filename for a scan node.
+ * Uses the node's real content-type to pick the right extension,
+ * and strips any wrongly guessed extension that was appended earlier.
+ *
+ * @param {{ cid: string, name?: string, contentType?: string, kind?: string }} node
+ * @returns {string}
+ */
+function resolveNodeName(node) {
+  const contentType = String(node.contentType || '').toLowerCase()
+
+  // Derive correct extension from actual content-type
+  const ext = extensionFromContentType(contentType, node.kind)
+
+  // Strip any previously appended extension from the stored name
+  const baseName = (node.name || node.cid.slice(0, 16))
+    .replace(/\.(json|txt|bin|html|htm)$/i, '')  // remove wrongly guessed exts
+    .toLowerCase()
+
+  return ext ? `${baseName}${ext}` : baseName
+}
+
+/**
+ * Map a MIME content-type to a file extension.
+ * Returns empty string when the type is unknown.
+ *
+ * @param {string} contentType
+ * @param {string} [kind]
+ * @returns {string}
+ */
+function extensionFromContentType(contentType, kind) {
+  if (contentType.includes('json'))           return '.json'
+  if (contentType === 'image/png')            return '.png'
+  if (contentType === 'image/jpeg' ||
+      contentType === 'image/jpg')            return '.jpg'
+  if (contentType === 'image/gif')            return '.gif'
+  if (contentType === 'image/webp')           return '.webp'
+  if (contentType === 'image/svg+xml')        return '.svg'
+  if (contentType === 'image/avif')           return '.avif'
+  if (contentType === 'video/mp4')            return '.mp4'
+  if (contentType === 'video/webm')           return '.webm'
+  if (contentType === 'video/quicktime')      return '.mov'
+  if (contentType === 'audio/mpeg')           return '.mp3'
+  if (contentType === 'audio/wav')            return '.wav'
+  if (contentType === 'audio/ogg')            return '.ogg'
+  if (contentType === 'audio/flac')           return '.flac'
+  if (contentType === 'model/gltf+json')      return '.gltf'
+  if (contentType === 'model/gltf-binary')    return '.glb'
+  if (contentType.startsWith('text/html'))    return '.html'
+  if (contentType.startsWith('text/'))        return '.txt'
+  // Fallback to kind
+  if (kind === 'json')   return '.json'
+  if (kind === 'html')   return '.html'
+  if (kind === 'text')   return '.txt'
+  return ''
 }
 
 /**

@@ -1,36 +1,49 @@
 <!--
-  MerkleTree.svelte — Collapsible tree visualization of parent→child CID relations
-  Svelte 5 component using $props() runes and recursive {#snippet} rendering.
+  MerkleTree.svelte — Collapsible tree visualization of parent→child CID relations.
+
+  Accepts the scanner's native output:
+    nodes   → Record<canonical, ScanNode>  (keyed by "ipfs://CID/path")
+    rootCid → string  (bare CID of the root)
+
+  ScanNode.children is an array of canonical strings (keys into nodes).
 -->
 <script>
-  /** @type {{ tree: import('$lib/server/ipfs/scanner.js').TreeNode[], maxExpanded?: number }} */
-  let { tree = [], maxExpanded = 50 } = $props()
+  /**
+   * @type {{
+   *   nodes: Record<string, import('$lib/server/ipfs/scanner.js').ScanNode>,
+   *   rootCid: string,
+   *   maxExpanded?: number
+   * }}
+   */
+  let { nodes = {}, rootCid = '', maxExpanded = 50 } = $props()
 
-  // Build lookup: id → node
-  let nodeMap = $derived(new Map(tree.map(n => [n.id, n])))
+  // Derive a flat list for initialization convenience
+  let nodeList = $derived(Object.values(nodes))
 
-  // Root nodes: those without a parent in the tree
-  let roots = $derived(tree.filter(n => n.parentId === null))
+  // Root node: the node whose canonical key starts with the rootCid and has depth 0
+  let rootCanonical = $derived(
+    nodeList.find(n => n.cid === rootCid && n.depth === 0)?.canonical ?? ''
+  )
 
-  // Track expanded state
+  // Track expanded state (keyed by canonical)
   let expanded = $state(new Set())
   let initialized = $state(false)
 
   $effect(() => {
-    if (tree.length && !initialized) {
-      const toExpand = tree.slice(0, maxExpanded).filter(n => n.children?.length > 0).map(n => n.id)
+    if (nodeList.length && !initialized) {
+      const toExpand = nodeList
+        .slice(0, maxExpanded)
+        .filter(n => n.children?.length > 0)
+        .map(n => n.canonical)
       expanded = new Set(toExpand)
       initialized = true
     }
   })
 
-  function toggle(id) {
-    if (expanded.has(id)) {
-      expanded.delete(id)
-    } else {
-      expanded.add(id)
-    }
-    expanded = new Set(expanded)
+  function toggle(canonical) {
+    const next = new Set(expanded)
+    next.has(canonical) ? next.delete(canonical) : next.add(canonical)
+    expanded = next
   }
 
   function shortCid(cid) {
@@ -39,59 +52,64 @@
   }
 
   function prettySize(bytes) {
-    if (bytes === null || bytes === undefined) return ''
+    if (!bytes) return ''
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`
   }
 
   function kindIcon(kind) {
-    if (kind === 'json') return '📄'
-    if (kind === 'html') return '🌐'
-    if (kind === 'text') return '📝'
+    if (kind === 'json')   return '📄'
+    if (kind === 'html')   return '🌐'
+    if (kind === 'text')   return '📝'
+    if (kind === 'binary') return '🖼'
     return '📦'
   }
 </script>
 
-{#snippet treeNode(node, depth)}
-  <div class="tree-row">
-    <div class="tree-indent" style="padding-left: {depth * 20}px">
-      {#if node.children?.length > 0}
-        <button class="tree-toggle" onclick={() => toggle(node.id)} aria-label="Toggle">
-          {expanded.has(node.id) ? '▼' : '▶'}
-        </button>
-      {:else}
-        <span class="tree-leaf">─</span>
-      {/if}
+{#snippet treeNode(canonical, depth)}
+  {@const node = nodes[canonical]}
+  {#if node}
+    <div class="tree-row">
+      <div class="tree-indent" style="padding-left: {depth * 20}px">
+        {#if node.children?.length > 0}
+          <button class="tree-toggle" onclick={() => toggle(canonical)} aria-label="Toggle">
+            {expanded.has(canonical) ? '▼' : '▶'}
+          </button>
+        {:else}
+          <span class="tree-leaf">─</span>
+        {/if}
 
-      <span class="tree-icon">{kindIcon(node.kind)}</span>
-      <span class="tree-name" title={node.canonical}>
-        {node.name || node.cid}
-      </span>
-      <span class="tree-cid" title={node.cid}>{shortCid(node.cid)}</span>
-      {#if node.size}
-        <span class="tree-size">{prettySize(node.size)}</span>
-      {/if}
-      {#if node.status !== 'ok'}
-        <span class="tree-error" title={node.notes}>⚠️</span>
-      {/if}
+        <span class="tree-icon">{kindIcon(node.kind)}</span>
+        <span class="tree-name" title={node.canonical}>
+          {node.name || node.cid}
+        </span>
+        <span class="tree-cid" title={node.cid}>{shortCid(node.cid)}</span>
+        {#if node.size}
+          <span class="tree-size">{prettySize(node.size)}</span>
+        {/if}
+        {#if node.error}
+          <span class="tree-error" title={node.error}>⚠️</span>
+        {/if}
+      </div>
     </div>
-  </div>
 
-  {#if expanded.has(node.id) && node.children?.length > 0}
-    {#each node.children as childId (childId)}
-      {@const child = nodeMap.get(childId)}
-      {#if child}
-        {@render treeNode(child, depth + 1)}
-      {/if}
-    {/each}
+    {#if expanded.has(canonical) && node.children?.length > 0}
+      {#each node.children as childCanonical (childCanonical)}
+        {@render treeNode(childCanonical, depth + 1)}
+      {/each}
+    {/if}
   {/if}
 {/snippet}
 
 <div class="merkle-tree">
-  {#each roots as node (node.id)}
-    {@render treeNode(node, 0)}
-  {/each}
+  {#if rootCanonical}
+    {@render treeNode(rootCanonical, 0)}
+  {:else}
+    {#each nodeList.filter(n => n.depth === 0) as node (node.canonical)}
+      {@render treeNode(node.canonical, 0)}
+    {/each}
+  {/if}
 </div>
 
 <style>

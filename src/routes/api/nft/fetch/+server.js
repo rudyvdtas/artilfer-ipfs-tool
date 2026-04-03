@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit'
+import { env } from '$env/dynamic/private'
 import { fetchEthereumNFTs } from '$lib/server/nft/ethereum-fetcher.js'
 import { fetchTezosNFTs } from '$lib/server/nft/tezos-fetcher.js'
 import { enrichWithIPFSInfo, filterIPFSNFTs } from '$lib/server/nft/ipfs-filter.js'
@@ -30,6 +31,11 @@ export async function GET({ url }) {
 
   try {
     let rawNFTs = []
+    let debugInfo = {
+      chain,
+      ALCHEMY_KEY_SET: !!env.ALCHEMY_KEY,
+      ALCHEMY_API_KEY_SET: !!env.ALCHEMY_API_KEY,
+    }
 
     if (chain === 'ethereum') {
       rawNFTs = await fetchEthereumNFTs(address)
@@ -49,6 +55,10 @@ export async function GET({ url }) {
       ipfsCount: ipfsNFTs.length,
       nfts: enriched,
       debugLog: rawNFTs.debugLog || [],
+      deployDebug: {
+        ...debugInfo,
+        alchemyDebug: rawNFTs.alchemyDebug || null,
+      },
     })
   } catch (err) {
     console.error('[NFT Fetch]', err)

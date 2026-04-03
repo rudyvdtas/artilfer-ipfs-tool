@@ -275,14 +275,15 @@
 
           <MetadataCard
             metadata={result.metadata ?? { title: '', artists: '', description: '', image: null }}
-            summary={result.summary ?? { totalFiles: 0, totalSize: 0, successCount: 0, failCount: 0 }}
+            summary={result.summary ?? { totalFiles: 0, totalBytes: 0, errors: 0 }}
             rootCid={result.rootCid ?? ''}
           />
 
-          {#if result.tree?.length > 0}
+          {#if result.nodes && Object.keys(result.nodes).length > 0}
+            {@const nodeList = Object.values(result.nodes)}
             <div class="tree-section">
-              <p class="section-label">Merkle tree — {result.tree.length} bestanden</p>
-              <MerkleTree tree={result.tree} />
+              <p class="section-label">Merkle tree — {nodeList.length} bestanden</p>
+              <MerkleTree nodes={result.nodes} rootCid={result.rootCid} />
             </div>
           {/if}
         </div>

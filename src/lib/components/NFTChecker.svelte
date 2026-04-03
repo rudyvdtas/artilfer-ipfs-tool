@@ -139,6 +139,138 @@
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
+  /**
+   * Collect all scan results regardless of single-job or multi-batch mode.
+   * Single mode: scanResult.nfts (from status endpoint)
+   * Batch mode:  batchResults (accumulated in-memory across all batches)
+   * @returns {Array}
+   */
+  function getAllResults() {
+    if (scanMode === 'batch') return batchResults
+    return scanResult?.nfts ?? []
+  }
+
+  /**
+   * Build and trigger a download from a string blob in the browser.
+   * @param {string} content
+   * @param {string} filename
+   * @param {string} mimeType
+   */
+  function triggerDownload(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function downloadManifest() {
+    const results = getAllResults()
+    const manifest = {
+      exported: new Date().toISOString(),
+      version: '1.0',
+      generator: 'NFT Archive Assistant — ARTfilter',
+      summary: scanResult?.summary ?? {},
+      nfts: results
+        .filter((r) => r.status === 'success')
+        .map((r) => ({
+          nftId: r.nftId,
+          name: r.name,
+          chain: r.chain,
+          contract: r.contract,
+          tokenId: r.tokenId,
+          metadataCID: r.metadataCID,
+          totalFiles: r.scanSummary?.totalFiles ?? r.scan?.summary?.totalFiles ?? 0,
+          totalBytes: r.scanSummary?.totalBytes ?? r.scan?.summary?.totalBytes ?? 0,
+        })),
+    }
+    triggerDownload(JSON.stringify(manifest, null, 2), 'nft-manifest.json', 'application/json')
+  }
+
+  function downloadCSV() {
+    const results = getAllResults()
+
+    const escape = (v) => {
+      const s = String(v ?? '')
+      return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+
+    // Pinata-compatible format: hash,name
+    const rows = ['hash,name']
+    const seen = new Set()
+
+    for (const r of results) {
+      if (r.status !== 'success') continue
+
+      // Metadata CID — label with the NFT name
+      if (r.metadataCID && !seen.has(r.metadataCID)) {
+        seen.add(r.metadataCID)
+        rows.push(`${r.metadataCID},${escape(r.name ?? '')}`)
+      }
+
+      // All child CIDs found during the scan
+      const nodes = r.scan?.nodes ?? {}
+      for (const node of Object.values(nodes)) {
+        if (!node.cid || node.error) continue
+        if (seen.has(node.cid)) continue
+        seen.add(node.cid)
+
+        const name = resolveNodeNameClient(node)
+        rows.push(`${node.cid},${escape(name)}`)
+      }
+    }
+
+    triggerDownload(rows.join('\n'), 'ready2pin.csv', 'text/csv')
+  }
+
+  /**
+   * Derive a clean filename for a scan node (client-side mirror of server resolveNodeName).
+   * @param {{ cid: string, name?: string, contentType?: string, kind?: string }} node
+   * @returns {string}
+   */
+  function resolveNodeNameClient(node) {
+    const contentType = String(node.contentType || '').toLowerCase()
+    const ext = extensionFromContentTypeClient(contentType, node.kind)
+    const baseName = (node.name || node.cid.slice(0, 16))
+      .replace(/\.(json|txt|bin|html|htm)$/i, '')
+      .toLowerCase()
+    return ext ? `${baseName}${ext}` : baseName
+  }
+
+  /**
+   * Map a MIME content-type to a file extension (client-side mirror).
+   * @param {string} contentType
+   * @param {string} [kind]
+   * @returns {string}
+   */
+  function extensionFromContentTypeClient(contentType, kind) {
+    if (contentType.includes('json'))           return '.json'
+    if (contentType === 'image/png')            return '.png'
+    if (contentType === 'image/jpeg' ||
+        contentType === 'image/jpg')            return '.jpg'
+    if (contentType === 'image/gif')            return '.gif'
+    if (contentType === 'image/webp')           return '.webp'
+    if (contentType === 'image/svg+xml')        return '.svg'
+    if (contentType === 'image/avif')           return '.avif'
+    if (contentType === 'video/mp4')            return '.mp4'
+    if (contentType === 'video/webm')           return '.webm'
+    if (contentType === 'video/quicktime')      return '.mov'
+    if (contentType === 'audio/mpeg')           return '.mp3'
+    if (contentType === 'audio/wav')            return '.wav'
+    if (contentType === 'audio/ogg')            return '.ogg'
+    if (contentType === 'audio/flac')           return '.flac'
+    if (contentType === 'model/gltf+json')      return '.gltf'
+    if (contentType === 'model/gltf-binary')    return '.glb'
+    if (contentType.startsWith('text/html'))    return '.html'
+    if (contentType.startsWith('text/'))        return '.txt'
+    if (kind === 'json')   return '.json'
+    if (kind === 'html')   return '.html'
+    if (kind === 'text')   return '.txt'
+    return ''
+  }
+
   // ─── Search ───────────────────────────────────────────
 
   async function handleSearch() {
@@ -650,20 +782,12 @@
 
       <!-- Export buttons -->
       <div class="export-row">
-        <a
-          href="/api/nft/export/manifest/{jobId}"
-          download="nft-manifest.json"
-          class="btn btn-secondary"
-        >
+        <button class="btn btn-secondary" onclick={downloadManifest}>
           📄 manifest.json
-        </a>
-        <a
-          href="/api/nft/export/ready2pin/{jobId}"
-          download="ready2pin.csv"
-          class="btn btn-secondary"
-        >
+        </button>
+        <button class="btn btn-secondary" onclick={downloadCSV}>
           📋 ready2pin.csv
-        </a>
+        </button>
       </div>
     </div>
   {/if}

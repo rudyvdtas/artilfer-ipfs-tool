@@ -5,8 +5,8 @@
   /** @type {{ title: string, artists: string, description: string, image: string | null }} */
   export let metadata = { title: '', artists: '', description: '', image: null }
 
-  /** @type {{ totalFiles: number, totalSize: number, successCount: number, failCount: number }} */
-  export let summary = { totalFiles: 0, totalSize: 0, successCount: 0, failCount: 0 }
+  /** @type {{ totalFiles: number, totalBytes: number, errors: number }} */
+  export let summary = { totalFiles: 0, totalBytes: 0, errors: 0 }
 
   /** @type {string} */
   export let rootCid = ''
@@ -67,17 +67,13 @@
           <span class="stat-label">files</span>
         </div>
         <div class="stat">
-          <span class="stat-value">{prettySize(summary.totalSize)}</span>
+          <span class="stat-value">{prettySize(summary.totalBytes)}</span>
           <span class="stat-label">total</span>
         </div>
-        <div class="stat">
-          <span class="stat-value">{summary.successCount}</span>
-          <span class="stat-label">ok</span>
-        </div>
-        {#if summary.failCount > 0}
+        {#if summary.errors > 0}
           <div class="stat stat-fail">
-            <span class="stat-value">{summary.failCount}</span>
-            <span class="stat-label">failed</span>
+            <span class="stat-value">{summary.errors}</span>
+            <span class="stat-label">errors</span>
           </div>
         {/if}
       </div>
@@ -142,6 +138,7 @@
     margin: 0 0 0.75rem 0;
     line-height: 1.4;
     display: -webkit-box;
+    line-clamp: 3;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
