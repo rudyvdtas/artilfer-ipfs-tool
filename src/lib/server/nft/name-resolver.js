@@ -14,9 +14,10 @@
 
 import pkg from 'js-sha3'
 import { env } from '$env/dynamic/private'
+import { tryRpc } from '$lib/server/nft/rpc-client.js'
 const { keccak_256 } = pkg
 
-const ETH_RPC_URL = env.ETHEREUM_RPC_URL || process.env.ETHEREUM_RPC_URL || 'https://eth.llamarpc.com'
+// Note: RPC endpoints are tried in order by `tryRpc` (rpc-client).
 const TEZ_DOMAINS_GRAPHQL = 'https://api.tezos.domains/graphql'
 const TIMEOUT_MS = 8000
 
@@ -75,20 +76,14 @@ async function ethCall(to, data, signal) {
     method: 'eth_call',
     params: [{ to, data }, 'latest'],
   })
+  const { url, json } = await tryRpc(body, signal)
 
-  const res = await fetch(ETH_RPC_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body,
-    signal,
-  })
+  if (json.error) {
+    const errMsg = json.error.message || JSON.stringify(json.error)
+    throw new Error(`RPC error from ${url}: ${errMsg}`)
+  }
 
-  if (!res.ok) throw new Error(`RPC HTTP ${res.status}`)
-
-  const json = await res.json()
-  if (json.error) throw new Error(`RPC error: ${json.error.message}`)
-
-  return json.result  // hex string
+  return json.result
 }
 
 /**

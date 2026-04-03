@@ -1,12 +1,11 @@
 import { env } from '$env/dynamic/private'
 import { resolve } from '$lib/server/ipfs/resolver.js'
+import { tryRpc } from '$lib/server/nft/rpc-client.js'
 
 const ERC721_ABI = ['function tokenURI(uint256 tokenId) view returns (string)']
 const ERC1155_ABI = ['function uri(uint256 tokenId) view returns (string)']
 
-function getRpcUrl() {
-  return env.ETHEREUM_RPC_URL || process.env.ETHEREUM_RPC_URL || 'https://eth.llamarpc.com'
-}
+// RPC requests will be attempted against multiple providers by `tryRpc`.
 
 function normalizeUri(value) {
   if (!value || typeof value !== 'string') return null
@@ -22,24 +21,15 @@ function toHexTokenId(tokenId) {
   }
 }
 
-async function rpcCall(method, params) {
-  const response = await fetch(getRpcUrl(), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method,
-      params,
-    }),
-  })
+async function rpcCall(method, params, signal) {
+  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+  const { url, json } = await tryRpc(body, signal)
 
-  const data = await response.json()
-  if (!response.ok || data.error) {
-    throw new Error(data.error?.message || `RPC ${method} failed`)
+  if (json.error) {
+    throw new Error(json.error?.message || `RPC ${method} failed from ${url}: ${JSON.stringify(json.error)}`)
   }
 
-  return data.result
+  return json.result
 }
 
 async function tryContractCall(contractAddress, signature, tokenId) {
