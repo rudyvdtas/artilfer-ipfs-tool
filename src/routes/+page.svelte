@@ -27,6 +27,19 @@
     pinned: '📌',
   }
 
+  const socialLinks = [
+    {
+      href: 'https://x.com/artfilterio',
+      label: '@artfilterio',
+      icon: '/icons/x-logo.svg',
+    },
+    {
+      href: 'https://x.com/rutgervandertas',
+      label: '@rutgervandertas',
+      icon: '/icons/x-logo.svg',
+    },
+  ]
+
   const pinnedProject = {
     title: 'First Supper',
     image: '/first-supper.jpg',
@@ -126,9 +139,14 @@
     <footer class="footer">
       <div class="footer-main">© 2026 ARTFILTER by RutgervanderTas · <a href="mailto:info@artfilter.io">info@artfilter.io</a></div>
       <div class="footer-socials">
-        <a href="https://x.com/artfilterio" target="_blank" rel="noopener noreferrer" aria-label="artfilterio on X">X</a>
-        <a href="https://x.com/rutgervandertas" target="_blank" rel="noopener noreferrer" aria-label="rutgervandertas on X">X</a>
+        {#each socialLinks as social}
+          <a href={social.href} target="_blank" rel="noopener noreferrer" class="social-link" aria-label={social.label}>
+            <img src={social.icon} alt="" aria-hidden="true" class="social-icon" />
+            <span>{social.label}</span>
+          </a>
+        {/each}
       </div>
+
     </footer>
 
     <!-- ── Tab: About ───────────────────────── -->
@@ -681,6 +699,18 @@
     display: inline-flex;
     gap: 12px;
     align-items: center;
+  }
+
+  .social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .social-icon {
+    width: 18px;
+    height: 18px;
+    display: block;
   }
 
   .tab {
