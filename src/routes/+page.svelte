@@ -45,8 +45,7 @@
   <meta name="description" content="Artfilter.io helps collectors consolidate their NFT collection into a Cultural Preservation Manifest for archiving and preservation — independent of marketplaces." />
 </svelte:head>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="page" onkeydown={onKeydown} role="main">
+<div class="page" role="main">
   <div class="shell">
 
     <!-- ── Header ─────────────────────────────────── -->
