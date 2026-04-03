@@ -151,45 +151,6 @@ export async function fetchCid(cid, path = '') {
   }
 }
 
-// ── HTML Directory Listing Parser ──
-
-/**
- * Extract IPFS CIDs from an HTML IPFS gateway directory listing.
- * Handles both `/ipfs/Qm…` href links and raw CID patterns in the page.
- * @param {string} html
- * @returns {Array<{ cid: string, path: string, canonical: string }>}
- */
-export function extractLinksFromHtml(html) {
-  if (!html || typeof html !== 'string') return []
-
-  const found = new Map()
-
-  function addRef(raw) {
-    const ref = resolve(raw)
-    if (ref && !found.has(ref.canonical)) found.set(ref.canonical, ref)
-  }
-
-  // 1. Extract href="/ipfs/CID" or href="/ipfs/CID/path" attributes
-  const hrefPattern = /href=["']([^"']*\/ipfs\/[^"']+)["']/gi
-  for (const match of html.matchAll(hrefPattern)) {
-    addRef(match[1])
-  }
-
-  // 2. Extract bare /ipfs/CID occurrences (e.g. in <a href=…> without quotes)
-  const slashIpfsPattern = /\/ipfs\/(Qm[1-9A-HJ-NP-Za-km-z]{44}|bafy[a-z0-9]{20,})[^\s"'<>`]*/gi
-  for (const match of html.matchAll(slashIpfsPattern)) {
-    addRef(match[0])
-  }
-
-  // 3. Extract ipfs:// URIs embedded in the page source
-  const ipfsUriPattern = /ipfs:\/\/[^\s"'<>`]+/gi
-  for (const match of html.matchAll(ipfsUriPattern)) {
-    addRef(match[0])
-  }
-
-  return [...found.values()]
-}
-
 // ── Reference Discovery ──
 
 /** Regex patterns to find IPFS references in text */
@@ -336,43 +297,29 @@ export function discoverAsyncNftRefs(json) {
 }
 
 /**
- * Extract all IPFS references from a fetched result (text, JSON, or HTML directory listing).
- * Handles standard metadata, async NFT metadata, and IPFS gateway HTML directory pages.
- * @param {{ json?: any, text?: string, contentType?: string }} fetched
+ * Extract all IPFS references from a fetched result (text or JSON).
+ * Handles both standard and async NFT metadata.
+ * @param {{ json?: any, text?: string }} fetched
  * @returns {Array<{ cid: string, path: string, canonical: string }>}
  */
 export function discoverAllRefs(fetched) {
   if (!fetched) return []
 
-  const merged = new Map()
-
-  function addAll(refs) {
-    for (const ref of refs) {
-      if (!merged.has(ref.canonical)) merged.set(ref.canonical, ref)
-    }
-  }
-
   if (fetched.json) {
     // Standard key-based discovery
-    addAll(discoverRefs(fetched.json, { maxRefs: 200, maxDepth: 8 }))
-    // Async NFT-specific discovery
-    addAll(discoverAsyncNftRefs(fetched.json))
+    const standard = discoverRefs(fetched.json, { maxRefs: 100, maxDepth: 8 })
+    // Async NFT discovery
+    const async_ = discoverAsyncNftRefs(fetched.json)
+    // Merge and deduplicate
+    const merged = new Map()
+    for (const ref of [...standard, ...async_]) {
+      if (!merged.has(ref.canonical)) merged.set(ref.canonical, ref)
+    }
     return [...merged.values()]
   }
 
   if (fetched.text) {
-    const contentType = String(fetched.contentType || '').toLowerCase()
-    const isHtml = contentType.includes('html') || fetched.text.trimStart().startsWith('<')
-
-    if (isHtml) {
-      // HTML directory listing: parse <a href="/ipfs/…"> links first
-      addAll(extractLinksFromHtml(fetched.text.slice(0, 500_000)))
-    }
-
-    // Also run generic regex scan on the raw text regardless (catches edge cases)
-    addAll(discoverRefs(fetched.text.slice(0, 200_000), { maxRefs: 200, maxDepth: 1 }))
-
-    return [...merged.values()]
+    return discoverRefs(fetched.text.slice(0, 200_000), { maxRefs: 100, maxDepth: 1 })
   }
 
   return []

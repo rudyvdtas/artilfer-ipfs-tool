@@ -81,18 +81,9 @@
     selected = new Set(nfts.map((n) => n.id))
   }
 
-  function selectOnlyIpfs() {
-    onlyIpfs = true
-    selected = new Set(nfts.filter((n) => n.hasIPFS).map((n) => n.id))
-  }
-
   function toggleOnlyIpfs() {
-    if (onlyIpfs) {
-      onlyIpfs = false
-      selected = new Set(nfts.map((n) => n.id))
-    } else {
-      selectOnlyIpfs()
-    }
+    onlyIpfs = !onlyIpfs
+    selected = onlyIpfs ? new Set(nfts.filter((n) => n.hasIPFS).map((n) => n.id)) : new Set(nfts.map((n) => n.id))
   }
 
   function selectNone() {
@@ -173,7 +164,7 @@
       })
 
       const resolveData = await resolveRes.json()
-      if (!resolveRes.ok) throw new Error(resolveData.error || 'Address resolution failed')
+      if (!resolveRes.ok) throw new Error(resolveData.error || 'Adres-resolutie mislukt')
 
       resolved = resolveData
       step = 'fetching'
@@ -183,7 +174,7 @@
         `/api/nft/fetch?address=${encodeURIComponent(resolved.address)}&chain=${resolved.chain}`
       )
       const fetchData = await fetchRes.json()
-      if (!fetchRes.ok) throw new Error(fetchData.error || 'Failed to fetch NFTs')
+      if (!fetchRes.ok) throw new Error(fetchData.error || 'NFT ophalen mislukt')
 
       totalCount = fetchData.totalCount
       nfts = fetchData.nfts
@@ -229,8 +220,8 @@
 
   async function startScan() {
     if (selected.size === 0) {
-    errorMsg = 'Select at least one NFT'
-    return
+      errorMsg = 'Selecteer minimaal één NFT'
+      return
     }
 
     const selectedNFTs = nfts.filter((n) => selected.has(n.id))
@@ -386,37 +377,37 @@
   <!-- ── Header ──────────────────────────────────── -->
   <div class="checker-header">
     <h2>NFT Wallet Checker</h2>
-    <p class="sub">Enter a wallet address, ENS, or Tezos domain to find and archive IPFS NFTs.</p>
+    <p class="sub">Voer een wallet-adres, ENS- of TEZ-domein in om IPFS NFTs te vinden en te archiveren.</p>
   </div>
 
   <!-- ── Step 1: Zoeken ──────────────────────────── -->
   <div class="card">
     <div class="card-label">
       <span class="step-num">1</span>
-      <span>Wallet address or domain</span>
+      <span>Wallet adres of domein</span>
       {#if step === 'done' || step === 'complete'}
-        <button class="btn btn-ghost" onclick={reset}>Reset</button>
+        <button class="btn btn-ghost" onclick={reset}>Opnieuw</button>
       {/if}
     </div>
 
     <div class="input-row">
       <input
         type="text"
-        placeholder="0x…  |  name.eth  |  tz1…  |  name.tez"
+        placeholder="0x…  |  naam.eth  |  tz1…  |  naam.tez"
         bind:value={input}
         class="text-input"
         class:is-error={!!errorMsg}
         disabled={step === 'resolving' || step === 'fetching' || step === 'scanning'}
-        aria-label="Wallet address or domain"
+        aria-label="Wallet adres of domein"
       />
       <button
         class="btn btn-primary"
         onclick={handleSearch}
         disabled={!input.trim() || step === 'resolving' || step === 'fetching' || step === 'scanning'}
       >
-        {#if step === 'resolving'}Resolving…
-        {:else if step === 'fetching'}Loading…
-        {:else}Search NFTs{/if}
+        {#if step === 'resolving'}Opzoeken…
+        {:else if step === 'fetching'}Laden…
+        {:else}Zoek NFTs{/if}
       </button>
     </div>
 
@@ -426,8 +417,8 @@
 
     {#if step === 'idle'}
       <p class="hint">
-        Supported formats: <code>0x…</code> (Ethereum), <code>tz1…</code> (Tezos),
-        <code>name.eth</code> (ENS), <code>name.tez</code> (Tezos domain)
+        Ondersteunde formaten: <code>0x…</code> (Ethereum), <code>tz1…</code> (Tezos),
+        <code>naam.eth</code> (ENS), <code>naam.tez</code> (TEZ domein)
       </p>
     {/if}
 
@@ -447,31 +438,31 @@
     <div class="card">
       <div class="card-label">
         <span class="step-num">2</span>
-        <span>NFTs found</span>
-        <span class="count-badge">{nfts.length} of {totalCount} total · {nfts.filter((n) => n.hasIPFS).length} with IPFS</span>
+        <span>NFTs gevonden</span>
+        <span class="count-badge">{nfts.length} van {totalCount} totaal · {nfts.filter((n) => n.hasIPFS).length} met IPFS</span>
         <button class="btn btn-ghost btn-small" onclick={() => (showDebug = !showDebug)}>
-        {showDebug ? 'Hide debug' : 'Show debug'}
+          {showDebug ? 'Debug verbergen' : 'Debug tonen'}
         </button>
       </div>
 
       {#if nfts.length === 0}
       <p class="empty-msg">
-      No NFTs found for this address.
+        Geen NFTs gevonden voor dit adres.
       </p>
       {:else}
 
         <div class="selection-bar">
-          <button class="btn btn-ghost btn-small" onclick={selectAll} class:active-filter={!onlyIpfs}>All</button>
-          <button class="btn btn-ghost btn-small" onclick={selectNone}>None</button>
-          <button class="btn btn-ghost btn-small" onclick={selectOnlyIpfs} class:active-filter={onlyIpfs}>
-            Only IPFS
+          <button class="btn btn-ghost btn-small" onclick={selectAll} class:active-filter={!onlyIpfs}>Alles</button>
+          <button class="btn btn-ghost btn-small" onclick={selectNone}>Geen</button>
+          <button class="btn btn-ghost btn-small" onclick={toggleOnlyIpfs} class:active-filter={onlyIpfs}>
+            {onlyIpfs ? 'Alle NFTs' : 'Only IPFS'}
           </button>
-          <span class="selection-count">{selected.size} selected</span>
+          <span class="selection-count">{selected.size} geselecteerd</span>
         </div>
 
         {#if selected.size > 50}
           <div class="batch-label-row">
-            <span class="batch-label">Batch scanning</span>
+            <span class="batch-label">Scan in batches</span>
             <span class="batch-count">{getBatchCount(selected.size)} batches · max 50 per batch</span>
           </div>
         {/if}
@@ -526,7 +517,7 @@
                   {#if nft.hasIPFS}
                     {nft.ipfsCIDs?.length ?? 0} CID{nft.ipfsCIDs?.length === 1 ? '' : 's'}
                   {:else}
-                    No IPFS
+                    Geen IPFS
                   {/if}
                 </p>
               </div>
@@ -544,7 +535,7 @@
           </button>
           {#if selected.size > 50}
             <p class="hint batch-hint">
-              This selection is automatically split into batches of 50 and processed sequentially.
+              Deze selectie wordt automatisch opgesplitst in batches van 50 en achter elkaar verwerkt.
             </p>
           {/if}
         {/if}
@@ -555,7 +546,7 @@
           <div class="debug-title">Fetch debug</div>
           <div class="debug-actions">
             <button class="btn btn-ghost btn-small" onclick={() => (showItemDebug = !showItemDebug)}>
-              {showItemDebug ? 'Hide item debug' : 'Show item debug'}
+              {showItemDebug ? 'Item debug verbergen' : 'Item debug tonen'}
             </button>
           </div>
           {#if fetchDebug?.length}
@@ -576,7 +567,7 @@
     <div class="card">
       <div class="card-label">
         <span class="step-num">3</span>
-        <span>Scanning…</span>
+        <span>Scannen…</span>
       </div>
 
       <div class="progress-block">
@@ -602,26 +593,26 @@
     <div class="card">
       <div class="card-label">
         <span class="step-num">3</span>
-        <span>Scan complete</span>
+        <span>Scan voltooid</span>
       </div>
 
       <!-- Summary stats -->
       <div class="stats-row">
         <div class="stat">
           <strong>{scanResult.summary?.successful ?? 0}</strong>
-          <span>Successful</span>
+          <span>Geslaagd</span>
         </div>
         <div class="stat">
           <strong>{scanResult.summary?.failed ?? 0}</strong>
-          <span>Failed</span>
+          <span>Gefaald</span>
         </div>
         <div class="stat">
           <strong>{scanResult.summary?.totalFiles ?? 0}</strong>
-          <span>Files</span>
+          <span>Bestanden</span>
         </div>
         <div class="stat">
           <strong>{formatBytes(scanResult.summary?.totalBytes)}</strong>
-          <span>Total</span>
+          <span>Totaal</span>
         </div>
       </div>
 
@@ -672,10 +663,10 @@
     <div class="card">
       <div class="card-label">
         <span class="step-num">3</span>
-        <span>Batch queue</span>
-        <span class="count-badge">{batchJobs.length + (batchRunning ? 1 : 0)} / {batchQueue.length} active</span>
+        <span>Batch-queue</span>
+        <span class="count-badge">{batchJobs.length + (batchRunning ? 1 : 0)} / {batchQueue.length} actief</span>
       </div>
-      <p class="hint">NFTs are automatically split into batches of 50 and scanned sequentially.</p>
+      <p class="hint">NFTs worden automatisch verdeeld in batches van 50 en achter elkaar gescand.</p>
 
       <div class="batch-overview">
         {#each batchQueue as chunk, i}
