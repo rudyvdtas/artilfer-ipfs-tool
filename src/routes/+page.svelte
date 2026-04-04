@@ -69,9 +69,9 @@
     <!-- ── Header ─────────────────────────────────── -->
     <header class="header">
       <div class="header-brand">
-        <div class="brand-row">
-          <img src="/icons/favicon.svg" alt="" aria-hidden="true" class="brand-logo" />
-          <span class="eyebrow">ARTFILTER</span>
+        <div class="brand-row brand-mark">
+          <img src="/icons/favicon.svg" alt="" aria-hidden="true" class="brand-logo brand-logo-glow" />
+          <span class="brand-title">ARTfilter</span>
         </div>
         <h1>Preservation starts with taking responsibility.</h1>
       </div>
@@ -197,10 +197,11 @@
     {#if activeTab === 'about'}
       <div class="step about-page">
         <div class="about-hero">
-          <div class="brand-row">
-            <img src="/icons/favicon.svg" alt="" aria-hidden="true" class="brand-logo" />
-            <h2>ARTFILTER</h2>
+          <div class="brand-row brand-mark">
+            <img src="/icons/favicon.svg" alt="" aria-hidden="true" class="brand-logo brand-logo-glow" />
+            <h2 class="brand-title">ARTfilter</h2>
           </div>
+
         </div>
 
         <section class="about-section">
@@ -467,10 +468,39 @@
     margin-bottom: 6px;
   }
 
+  .header .brand-row {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header .brand-logo {
+    width: 28px;
+    height: 28px;
+    margin-top: 4px;
+  }
+
   .brand-logo {
     width: 24px;
     height: 24px;
     object-fit: contain;
+  }
+
+  .brand-logo-glow {
+    filter: drop-shadow(0 0 10px rgba(255, 196, 140, 0.65))
+      drop-shadow(0 0 24px rgba(255, 170, 92, 0.35));
+  }
+
+  .brand-mark {
+    align-items: center;
+  }
+
+  .brand-title {
+    font-size: 0.33em;
+    text-transform: none;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    line-height: 0.95;
+    color: #1b140e;
   }
 
   .eyebrow {
@@ -483,9 +513,19 @@
     margin-bottom: 6px;
   }
 
+  .header .brand-title,
+  .about-hero .brand-title {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: #1b140e;
+    text-transform: none;
+  }
+
   h1 {
-    font-size: clamp(1.4rem, 4vw, 2.4rem);
-    font-weight: 800;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 300;
     margin: 0 0 8px;
     line-height: 1.1;
     color: #1b140e;
@@ -494,6 +534,7 @@
   @media (max-width: 500px) {
     h1 {
       font-size: 1.3rem;
+      font-weight: 300;
     }
   }
 
@@ -768,12 +809,22 @@
     box-shadow: var(--color-card-shadow);
     position: relative;
     align-items: center;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-top: -10px;
   }
 
   .tabs-desktop {
     display: flex;
     gap: 4px;
     width: 100%;
+  }
+
+  .tabs-desktop > .tab,
+  .mobile-menu > .tab {
+    border: 2px solid #c7a283 !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+    background: #fffdf7;
   }
 
   .mobile-menu-btn {
@@ -862,8 +913,8 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    border: 2px solid transparent;
-    background: transparent;
+    border: 2px solid #c7a283 !important;
+    background: #fffdf7;
     cursor: pointer;
     font-size: 0.88rem;
     font-weight: 700;
@@ -871,6 +922,7 @@
     border-radius: 12px;
     transition: transform 0.12s, border-color 0.15s, background 0.15s, color 0.15s;
     white-space: nowrap;
+    box-sizing: border-box;
   }
 
   .donate-tab {
@@ -885,13 +937,14 @@
   .tab:hover {
     color: #1b140e;
     transform: translateY(-1px);
-    background: #fff3df;
+    background: #e3f6c8;
+    border-color: #c7a283 !important;
   }
 
   .tab.active {
-    color: #1b140e;
-    border-color: var(--color-border);
-    background: #fff3df;
+    color: #683a51e5;
+    border-color: #c7a283 !important;
+    background: #d9f4ff;
   }
 
   @media (max-width: 768px) {
@@ -914,6 +967,7 @@
   @media (max-width: 500px) {
     .tabs {
       overflow-x: auto;
+      margin-top: -6px;
     }
     .tab {
       font-size: 0.8rem;
