@@ -11,6 +11,7 @@
   import DirectCIDScan from '$lib/components/DirectCIDScan.svelte'
   import ThumbGallery from '$lib/components/ThumbGallery.svelte'
   let donateOpen = false
+  let mobileMenuOpen = false
 
   const donateAddress = async (value) => {
     try {
@@ -18,6 +19,10 @@
     } catch {
       // ignore clipboard failures
     }
+  }
+
+  const closeMobileMenu = () => {
+    mobileMenuOpen = false
   }
 
   const icons = {
@@ -102,38 +107,90 @@
 
     <!-- ── Tabs ───────────────────────────────────── -->
     <nav class="tabs" aria-label="Navigatie">
-      <button
-        class="tab"
-        class:active={activeTab === 'about'}
-        onclick={() => (activeTab = 'about')}
+      <!-- Desktop Tabs -->
+      <div class="tabs-desktop">
+        <button
+          class="tab"
+          class:active={activeTab === 'about'}
+          onclick={() => (activeTab = 'about')}
+        >
+          <span class="tab-icon">{icons.about}</span>
+          About
+        </button>
+        <button
+          class="tab"
+          class:active={activeTab === 'pinned'}
+          onclick={() => (activeTab = 'pinned')}
+        >
+          <span class="tab-icon">{icons.pinned}</span>
+          Pinned
+        </button>
+        <button
+          class="tab"
+          class:active={activeTab === 'nft-checker'}
+          onclick={() => (activeTab = 'nft-checker')}
+        >
+          <span class="tab-icon">{icons.nft}</span>
+          NFT Wallet Checker
+        </button>
+        <button
+          class="tab"
+          class:active={activeTab === 'scanner'}
+          onclick={() => (activeTab = 'scanner')}
+        >
+          <span class="tab-icon">{icons.scan}</span>
+          Direct CID Scan
+        </button>
+      </div>
+
+      <!-- Mobile Hamburger Menu -->
+      <button 
+        class="mobile-menu-btn" 
+        aria-label="Menu" 
+        aria-expanded={mobileMenuOpen}
+        onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
       >
-        <span class="tab-icon">{icons.about}</span>
-        About
+        <span class="hamburger-icon"></span>
+        <span class="hamburger-icon"></span>
+        <span class="hamburger-icon"></span>
       </button>
-      <button
-        class="tab"
-        class:active={activeTab === 'pinned'}
-        onclick={() => (activeTab = 'pinned')}
-      >
-        <span class="tab-icon">{icons.pinned}</span>
-        Pinned
-      </button>
-      <button
-        class="tab"
-        class:active={activeTab === 'nft-checker'}
-        onclick={() => (activeTab = 'nft-checker')}
-      >
-        <span class="tab-icon">{icons.nft}</span>
-        NFT Wallet Checker
-      </button>
-      <button
-        class="tab"
-        class:active={activeTab === 'scanner'}
-        onclick={() => (activeTab = 'scanner')}
-      >
-        <span class="tab-icon">{icons.scan}</span>
-        Direct CID Scan
-      </button>
+
+      {#if mobileMenuOpen}
+        <div class="mobile-menu">
+          <button
+            class="tab tab-mobile"
+            class:active={activeTab === 'about'}
+            onclick={() => { activeTab = 'about'; closeMobileMenu(); }}
+          >
+            <span class="tab-icon">{icons.about}</span>
+            About
+          </button>
+          <button
+            class="tab tab-mobile"
+            class:active={activeTab === 'pinned'}
+            onclick={() => { activeTab = 'pinned'; closeMobileMenu(); }}
+          >
+            <span class="tab-icon">{icons.pinned}</span>
+            Pinned
+          </button>
+          <button
+            class="tab tab-mobile"
+            class:active={activeTab === 'nft-checker'}
+            onclick={() => { activeTab = 'nft-checker'; closeMobileMenu(); }}
+          >
+            <span class="tab-icon">{icons.nft}</span>
+            NFT Wallet Checker
+          </button>
+          <button
+            class="tab tab-mobile"
+            class:active={activeTab === 'scanner'}
+            onclick={() => { activeTab = 'scanner'; closeMobileMenu(); }}
+          >
+            <span class="tab-icon">{icons.scan}</span>
+            Direct CID Scan
+          </button>
+        </div>
+      {/if}
     </nav>
 
     <!-- ── Tab: About ───────────────────────── -->
@@ -275,10 +332,17 @@
     padding: 22px 22px 18px;
     display: flex;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
     align-items: flex-start;
     position: relative;
     isolation: isolate;
+  }
+
+  @media (max-width: 600px) {
+    .header {
+      padding: 16px 14px 12px;
+      gap: 8px;
+    }
   }
 
   .donate-header-wrap {
@@ -300,6 +364,17 @@
     cursor: pointer;
     display: grid;
     place-items: center;
+  }
+
+  @media (max-width: 500px) {
+    .donate-circle {
+      width: 56px;
+      height: 56px;
+    }
+
+    .donate-label {
+      font-size: 0.7rem;
+    }
   }
 
   .donate-circle-icon {
@@ -409,11 +484,17 @@
   }
 
   h1 {
-    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-size: clamp(1.4rem, 4vw, 2.4rem);
     font-weight: 800;
     margin: 0 0 8px;
     line-height: 1.1;
     color: #1b140e;
+  }
+
+  @media (max-width: 500px) {
+    h1 {
+      font-size: 1.3rem;
+    }
   }
 
 
@@ -434,6 +515,13 @@
     flex-direction: column;
     gap: 16px;
     box-shadow: var(--color-card-shadow);
+  }
+
+  @media (max-width: 500px) {
+    .step {
+      padding: 16px;
+      gap: 12px;
+    }
   }
 
   .step-label {
@@ -502,9 +590,17 @@
   .project-image {
     width: 100%;
     height: auto;
+    max-height: 400px;
     border-radius: 12px;
     margin: 16px 0;
     object-fit: cover;
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  @media (max-width: 500px) {
+    .project-image {
+      max-height: 280px;
+    }
   }
 
   .button-group {
@@ -670,6 +766,56 @@
     padding: 8px;
     background: var(--color-bg-surface);
     box-shadow: var(--color-card-shadow);
+    position: relative;
+    align-items: center;
+  }
+
+  .tabs-desktop {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    margin-left: auto;
+  }
+
+  .hamburger-icon {
+    width: 24px;
+    height: 2px;
+    background: #6a5747;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .mobile-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-bg-surface);
+    border: 2px solid var(--color-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    box-shadow: 0 8px 16px rgba(15,23,42,0.1);
+    z-index: 1000;
+  }
+
+  .tab-mobile {
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
   }
 
   .footer {
@@ -748,6 +894,23 @@
     background: #fff3df;
   }
 
+  @media (max-width: 768px) {
+    .tabs-desktop {
+      display: none;
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .mobile-menu {
+      width: calc(100vw - 40px);
+      max-width: none;
+      left: -2px;
+      right: -2px;
+    }
+  }
+
   @media (max-width: 500px) {
     .tabs {
       overflow-x: auto;
@@ -759,6 +922,12 @@
     .footer {
       flex-direction: column;
       align-items: flex-start;
+    }
+    .header {
+      padding: 16px 16px 14px;
+    }
+    .page {
+      padding: 16px 16px 60px;
     }
   }
 
