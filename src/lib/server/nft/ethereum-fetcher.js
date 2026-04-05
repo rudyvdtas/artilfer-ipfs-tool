@@ -12,7 +12,8 @@ import { fetchContractTokenUri } from './ethereum-token-uri.js'
 import { tryRpc } from '$lib/server/nft/rpc-client.js'
 
 const TIMEOUT_MS = 15_000
-const MAX_NFTS = 500
+const PAGE_TIMEOUT_MS = 12_000   // timeout per pagina, niet voor de hele loop
+const MAX_NFTS = 2000
 
 function getAlchemyKey() {
   return (
@@ -21,8 +22,10 @@ function getAlchemyKey() {
 }
 
 /**
- * Convert gateway URLs (https://gateway.pinata.cloud/ipfs/Qm...) to ipfs:// URIs
+ * Convert gateway URLs (https://gateway.pinata.cloud/ipfs/Qm.../path) to ipfs:// URIs
  * so IPFS detection works correctly.
+ * ✅ Behoudt het sub-pad (bijv. /3.json) zodat bij collectie-URIs de juiste
+ * token-file wordt gescand in plaats van de hele directory.
  * @param {string} uri
  * @returns {string|null}
  */
@@ -33,19 +36,11 @@ function normalizeGatewayToIPFS(uri) {
   // Already an IPFS URI
   if (v.startsWith('ipfs://')) return v
 
-  // Extract CID from gateway URL patterns
-  const patterns = [
-    /gateway\.pinata\.cloud\/ipfs\/([a-zA-Z0-9]+)/,
-    /cloudflare-ipfs\.com\/ipfs\/([a-zA-Z0-9]+)/,
-    /ipfs\.io\/ipfs\/([a-zA-Z0-9]+)/,
-    /w3s\.link\/ipfs\/([a-zA-Z0-9]+)/,
-    /nft\.storage\/ipfs\/([a-zA-Z0-9]+)/,
-  ]
-
-  for (const pattern of patterns) {
-    const match = v.match(pattern)
-    if (match) return `ipfs://${match[1]}`
-  }
+  // Extract CID + optional sub-path from gateway URL patterns
+  // e.g. https://ipfs.io/ipfs/Qm.../3.json  →  ipfs://Qm.../3.json
+  const gatewayPattern = /(?:gateway\.pinata\.cloud|cloudflare-ipfs\.com|ipfs\.io|w3s\.link|nft\.storage)\/ipfs\/(([a-zA-Z0-9]+)(\/.*)?)$/
+  const match = v.match(gatewayPattern)
+  if (match) return `ipfs://${match[1]}`
 
   return v
 }
@@ -109,15 +104,17 @@ function normalizeAlchemyNFT(item) {
  * @returns {Promise<Array>}
  */
 async function fetchWithAlchemy(address, apiKey) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
   const allNFTs = []
   let pageKey = null
   const alchemyDebug = {}
 
   try {
     do {
+      // ✅ Aparte AbortController per pagina — voorkomt dat één trage pagina
+      // de hele paginering-loop afbreekt via een gedeelde timeout.
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), PAGE_TIMEOUT_MS)
+
       const params = new URLSearchParams({
         owner: address,
         withMetadata: 'true',
@@ -126,10 +123,15 @@ async function fetchWithAlchemy(address, apiKey) {
       if (pageKey) params.set('pageKey', pageKey)
 
       const url = `https://eth-mainnet.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner?${params}`
-      const response = await fetch(url, {
-        headers: { accept: 'application/json' },
-        signal: controller.signal,
-      })
+      let response
+      try {
+        response = await fetch(url, {
+          headers: { accept: 'application/json' },
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timer)
+      }
 
       if (!response.ok) throw new Error(`Alchemy HTTP ${response.status}`)
 
@@ -154,11 +156,9 @@ async function fetchWithAlchemy(address, apiKey) {
       if (allNFTs.length >= MAX_NFTS) break
     } while (pageKey)
 
-    clearTimeout(timer)
     return { nfts: allNFTs, alchemyDebug, method: 'alchemy' }
   } catch (err) {
-    clearTimeout(timer)
-    if (err.name === 'AbortError') throw new Error('Alchemy API time-out')
+    if (err.name === 'AbortError') throw new Error('Alchemy API time-out (pagina te traag)')
     throw err
   }
 }

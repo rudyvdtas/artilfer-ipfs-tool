@@ -48,8 +48,11 @@ import { fetchSemaphore } from './concurrency.js'
  * }} ScanResult
  */
 
-const MAX_NODES = 500
-const MAX_DEPTH = 10
+// ✅ Increased limits for large NFT collections with many external references
+// NFT root CIDs often contain 100+ items and use external CIDs (bafybeigXXX) 
+// for items 2-9, 12-99, 112-181 which adds significant depth
+const MAX_NODES = 2000
+const MAX_DEPTH = 15
 
 /**
  * Scan an IPFS CID recursively (BFS), building a Merkle tree.
@@ -123,6 +126,8 @@ export async function scan(input, onProgress) {
     if (fetched.ok && depth < MAX_DEPTH) {
       const refs = discoverAllRefs(fetched)
       for (const ref of refs) {
+        // Skip self-references: a directory listing always contains a link back to itself
+        if (ref.cid === rootCid && ref.path === '') continue
         if (!seen.has(ref.canonical)) {
           seen.add(ref.canonical)
           queue.push({
@@ -196,6 +201,46 @@ export function serializeForStorage(result) {
     nodes,
     metadata: result.metadata,
     summary: result.summary,
+  }
+}
+
+/**
+ * ✅ Diagnostic analyzer for NFT collection structure.
+ * Detects if the collection has external references (bafy… hashes) that point to
+ * items stored outside the root directory (e.g. items 2-9, 12-99, 112-181).
+ * 
+ * Helps identify scanning issues where external references were missed.
+ *
+ * @param {ScanResult} result
+ * @returns {object} Diagnostic report
+ */
+export function analyzeScanStructure(result) {
+  const nodes = Object.values(result.nodes)
+  
+  // Count items by type
+  const direct = nodes.filter(n => /^\d+$/.test(n.path?.split('/').filter(Boolean).pop() || ''))
+  const external = nodes.filter(n => n.cid?.startsWith('bafy') && n.depth <= 2)
+  const html = nodes.filter(n => n.kind === 'html')
+  
+  // Analyze missing ranges
+  const directNumbers = new Set(direct.map(n => parseInt(n.path?.split('/').pop() || '', 10)))
+  const missingNumbers = []
+  const maxNum = Math.max(...directNumbers, 0)
+  
+  for (let i = 0; i <= maxNum; i++) {
+    if (!directNumbers.has(i)) missingNumbers.push(i)
+  }
+  
+  return {
+    totalNodes: nodes.length,
+    direct: { count: direct.length, examples: direct.slice(0, 3).map(n => n.name) },
+    external: { count: external.length, examples: external.slice(0, 3).map(n => n.cid?.slice(0, 16)) },
+    htmlPages: { count: html.length, totalSize: html.reduce((s, n) => s + n.size, 0) },
+    missingDirectItems: missingNumbers.length > 0 ? missingNumbers.slice(0, 20) : [],
+    likelyExternalRefs: external.length > 0 && html.length > 0,
+    recommendation: missingNumbers.length > 0 
+      ? `Missing items detected (${missingNumbers.length} gaps). Check if external references (bafy…) were properly followed.`
+      : 'All direct items appear to be present.',
   }
 }
 

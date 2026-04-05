@@ -18,8 +18,10 @@ const GATEWAYS = [
   'https://dweb.link/ipfs',
 ]
 
-const FETCH_TIMEOUT_MS = 8_000  // ✅ Reduced for faster failover
-const MAX_TEXT_LENGTH = 256 * 1024
+// ✅ Increased timeout for large directory listings (100+ items can be 500KB+ each)
+// Gateway response time varies; use 12s to allow for slow networks
+const FETCH_TIMEOUT_MS = 12_000
+const MAX_TEXT_LENGTH = 2 * 1024 * 1024  // 2MB (was 256KB) to handle large directory HTML
 
 // ── CID Parsing ──
 
@@ -59,17 +61,23 @@ export function resolve(raw) {
     const [cidPart, ...pathParts] = rest.split('/')
     const cid = parseCid(cidPart)
     if (!cid) return null
-    const path = pathParts.length ? `/${pathParts.join('/')}` : ''
+    // Strip trailing empty segment caused by a trailing slash (e.g. ipfs://Qm…/)
+    const meaningful = pathParts.filter((p, i) => i < pathParts.length - 1 || p !== '')
+    const path = meaningful.length ? `/${meaningful.join('/')}` : ''
     return { cid, path, canonical: `ipfs://${cid}${path}` }
   }
 
-  // URL with /ipfs/ in path
+  // URL with /ipfs/ in path (e.g. https://ipfs.io/ipfs/Qm…/)
   if (cleaned.includes('/ipfs/')) {
-    const after = cleaned.slice(cleaned.indexOf('/ipfs/') + '/ipfs/'.length)
+    // Strip query string before parsing (e.g. ?filename=0)
+    const withoutQuery = cleaned.split('?')[0]
+    const after = withoutQuery.slice(withoutQuery.indexOf('/ipfs/') + '/ipfs/'.length)
     const [cidPart, ...pathParts] = after.split('/')
     const cid = parseCid(cidPart)
     if (!cid) return null
-    const path = pathParts.length ? `/${pathParts.join('/')}` : ''
+    // Strip trailing empty segment caused by a trailing slash
+    const meaningful = pathParts.filter((p, i) => i < pathParts.length - 1 || p !== '')
+    const path = meaningful.length ? `/${meaningful.join('/')}` : ''
     return { cid, path, canonical: `ipfs://${cid}${path}` }
   }
 
@@ -77,7 +85,9 @@ export function resolve(raw) {
   const [cidPart, ...pathParts] = cleaned.split('/')
   const cid = parseCid(cidPart)
   if (!cid) return null
-  const path = pathParts.length ? `/${pathParts.join('/')}` : ''
+  // Strip trailing empty segment caused by a trailing slash
+  const meaningful = pathParts.filter((p, i) => i < pathParts.length - 1 || p !== '')
+  const path = meaningful.length ? `/${meaningful.join('/')}` : ''
   return { cid, path, canonical: `ipfs://${cid}${path}` }
 }
 
@@ -156,6 +166,7 @@ export async function fetchCid(cid, path = '') {
 /**
  * Extract IPFS CIDs from an HTML IPFS gateway directory listing.
  * Handles both `/ipfs/Qm…` href links and raw CID patterns in the page.
+ * ✅ Enhanced to catch nested structures like /name/bafy… links in directory pages.
  * @param {string} html
  * @returns {Array<{ cid: string, path: string, canonical: string }>}
  */
@@ -170,9 +181,11 @@ export function extractLinksFromHtml(html) {
   }
 
   // 1. Extract href="/ipfs/CID" or href="/ipfs/CID/path" attributes
+  //    Skip ?filename=… query-string-only variants (they point to the same CID via a different URL)
   const hrefPattern = /href=["']([^"']*\/ipfs\/[^"']+)["']/gi
   for (const match of html.matchAll(hrefPattern)) {
-    addRef(match[1])
+    const href = match[1].split('?')[0]  // strip ?filename=… query params
+    addRef(href)
   }
 
   // 2. Extract bare /ipfs/CID occurrences (e.g. in <a href=…> without quotes)
@@ -181,10 +194,35 @@ export function extractLinksFromHtml(html) {
     addRef(match[0])
   }
 
-  // 3. Extract ipfs:// URIs embedded in the page source
+  // 3. ✅ Extract nested paths with CIDs: /name/bafy… (e.g. /181/bafy…)
+  //    This handles NFT collections where items are stored under numeric paths
+  //    that reference external IPFS v1 hashes
+  const nestedPathPattern = /\/([0-9a-zA-Z_-]+)\/(bafy[a-z0-9]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})[^\s"'<>`]*/gi
+  for (const match of html.matchAll(nestedPathPattern)) {
+    addRef(`/ipfs/${match[2]}/${match[1]}`)
+  }
+
+  // 4. Extract ipfs:// URIs embedded in the page source
   const ipfsUriPattern = /ipfs:\/\/[^\s"'<>`]+/gi
   for (const match of html.matchAll(ipfsUriPattern)) {
     addRef(match[0])
+  }
+
+  // 5. ✅ Extract standalone CIDs (Qm… and bafy…) from directory listing pages
+  //    Some directory pages may list CIDs directly in links or data attributes
+  const standalonePattern = /(Qm[1-9A-HJ-NP-Za-km-z]{44}|bafy[a-z0-9]{20,})(?![a-zA-Z0-9])/g
+  for (const match of html.matchAll(standalonePattern)) {
+    const cid = match[1]
+    // Only add if it looks like it's in a link context (not in random text)
+    const idx = match.index
+    const before = html.substring(Math.max(0, idx - 50), idx).toLowerCase()
+    const after = html.substring(idx, Math.min(html.length, idx + 100)).toLowerCase()
+    
+    if (/(href|ipfs|link|cid|hash|url|src)/.test(before) || 
+        /[\/\s"'>]/.test(after) ||
+        /<a[^>]*href/.test(before + after)) {
+      addRef(cid)
+    }
   }
 
   return [...found.values()]
@@ -219,12 +257,13 @@ const RECURSE_KEYS = new Set([
 /**
  * Discover IPFS references in any value (string, object, array).
  * Returns de-duplicated array of resolved references.
+ * ✅ Enhanced for NFT collections with many external references.
  * @param {any} input
  * @param {{ maxRefs?: number, maxDepth?: number }} [opts]
  * @returns {Array<{ cid: string, path: string, canonical: string }>}
  */
 export function discoverRefs(input, opts = {}) {
-  const { maxRefs = 100, maxDepth = 8 } = opts
+  const { maxRefs = 500, maxDepth = 8 } = opts
   const found = new Map()
   const visited = new WeakSet()
   let nodeCount = 0
@@ -285,15 +324,21 @@ export function discoverRefs(input, opts = {}) {
 /**
  * Specialized discovery for async NFT metadata (tokenType=master).
  * Scans layout.layers[].states.options[].uri and async-attributes.
+ * ✅ Enhanced for NFT collections with many nested references.
  * @param {object} json
  * @returns {Array<{ cid: string, path: string, canonical: string }>}
  */
 export function discoverAsyncNftRefs(json) {
   if (!json || typeof json !== 'object') return []
 
-  const isAsync = json.tokenType === 'master' ||
+  // ✅ Check if this is an array/list structure (common in NFT roots with many items)
+  const isArray = Array.isArray(json)
+  const isAsync = isArray ||
+    json.tokenType === 'master' ||
     json['async-attributes'] || json.async_attributes ||
-    Array.isArray(json?.layout?.layers)
+    Array.isArray(json?.layout?.layers) ||
+    // ✅ Also detect when JSON has numeric keys (directory listing pattern)
+    /^\d+$/.test(Object.keys(json || {})[0] || '')
 
   if (!isAsync) return []
 
@@ -303,6 +348,21 @@ export function discoverAsyncNftRefs(json) {
     if (!raw) return
     const ref = resolve(raw)
     if (ref && !found.has(ref.canonical)) found.set(ref.canonical, ref)
+  }
+
+  // ✅ If this is an array or numeric-keyed object, scan all items
+  if (isArray || /^\d+$/.test(Object.keys(json || {})[0] || '')) {
+    const items = isArray ? json : Object.values(json)
+    for (const item of items) {
+      if (typeof item === 'string') {
+        addRef(item)
+      } else if (item && typeof item === 'object') {
+        // Scan item for any IPFS references
+        for (const ref of discoverRefs(item, { maxRefs: 500, maxDepth: 6 })) {
+          if (!found.has(ref.canonical)) found.set(ref.canonical, ref)
+        }
+      }
+    }
   }
 
   // Scan layout layers
@@ -338,6 +398,7 @@ export function discoverAsyncNftRefs(json) {
 /**
  * Extract all IPFS references from a fetched result (text, JSON, or HTML directory listing).
  * Handles standard metadata, async NFT metadata, and IPFS gateway HTML directory pages.
+ * ✅ Enhanced for large NFT collections with many external references (100+ items).
  * @param {{ json?: any, text?: string, contentType?: string }} fetched
  * @returns {Array<{ cid: string, path: string, canonical: string }>}
  */
@@ -353,8 +414,8 @@ export function discoverAllRefs(fetched) {
   }
 
   if (fetched.json) {
-    // Standard key-based discovery
-    addAll(discoverRefs(fetched.json, { maxRefs: 200, maxDepth: 8 }))
+    // Standard key-based discovery (increased limits for NFT collections)
+    addAll(discoverRefs(fetched.json, { maxRefs: 500, maxDepth: 8 }))
     // Async NFT-specific discovery
     addAll(discoverAsyncNftRefs(fetched.json))
     return [...merged.values()]
@@ -366,11 +427,13 @@ export function discoverAllRefs(fetched) {
 
     if (isHtml) {
       // HTML directory listing: parse <a href="/ipfs/…"> links first
-      addAll(extractLinksFromHtml(fetched.text.slice(0, 500_000)))
+      // Increased slice to catch more links in large directory pages (500KB)
+      addAll(extractLinksFromHtml(fetched.text.slice(0, 1_000_000)))
     }
 
     // Also run generic regex scan on the raw text regardless (catches edge cases)
-    addAll(discoverRefs(fetched.text.slice(0, 200_000), { maxRefs: 200, maxDepth: 1 }))
+    // Increased maxRefs for NFT collections with many items
+    addAll(discoverRefs(fetched.text.slice(0, 500_000), { maxRefs: 500, maxDepth: 1 }))
 
     return [...merged.values()]
   }

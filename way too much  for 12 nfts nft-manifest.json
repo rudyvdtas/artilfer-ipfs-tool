@@ -1,0 +1,111 @@
+{
+  "exported": "2026-04-05T08:33:45.721Z",
+  "version": "1.0",
+  "generator": "NFT Archive Assistant — ARTfilter",
+  "summary": {
+    "totalNFTs": 12,
+    "successful": 12,
+    "failed": 0,
+    "skipped": 0,
+    "totalFiles": 1614,
+    "totalBytes": 2597803480
+  },
+  "nfts": [
+    {
+      "nftId": "eth-0x057656A0DFd218227A3A5edB5898b565aa4f915e-19",
+      "name": "Pass me your Apple or I'll blow up this dinner",
+      "chain": "ethereum",
+      "metadataCID": "QmYUPvLFS7xYPLXQsif2xzZs1ZP9n9EzmqyNtpkoKdBqRG",
+      "totalFiles": 118,
+      "totalBytes": 110288670
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-9",
+      "name": "SATS #9",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-81",
+      "name": "SATS #81",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-82",
+      "name": "SATS #82",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-94",
+      "name": "SATS #94",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-95",
+      "name": "SATS #95",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-97",
+      "name": "SATS #97",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-98",
+      "name": "SATS #98",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-99",
+      "name": "SATS #99",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-100",
+      "name": "SATS #100",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-101",
+      "name": "SATS #101",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    },
+    {
+      "nftId": "eth-0x0d0f3D4f1824737A6f215828ceA05376426Fef50-102",
+      "name": "SATS #102",
+      "chain": "ethereum",
+      "metadataCID": "Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw",
+      "totalFiles": 136,
+      "totalBytes": 226137710
+    }
+  ]
+}

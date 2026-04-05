@@ -124,11 +124,16 @@ export function extractIPFSCIDs(nft) {
 }
 
 /**
- * Determine the best metadata CID to scan for an NFT.
- * Priority: tokenURI → image → first CID found
+ * Determine the best metadata scan target for an NFT.
+ * Returns the full canonical IPFS URI (ipfs://CID/path) to preserve
+ * any sub-path, e.g. ipfs://Qm.../3.json instead of just Qm...
+ * Scanning a bare directory CID would return the entire collection
+ * instead of the specific token metadata file.
+ *
+ * Priority: metadata.uri (Tezos) → tokenURI → contractTokenURI → first CID
  *
  * @param {object} nft
- * @returns {string | null}
+ * @returns {string | null} canonical ipfs:// URI or bare CID as fallback
  */
 export function extractMetadataCID(nft) {
   if (!nft) return null
@@ -136,19 +141,21 @@ export function extractMetadataCID(nft) {
   // ✅ Priority 1: explicit metadata JSON URI (Tezos: metadata.uri)
   if (isIPFSString(nft.metadata?.uri)) {
     const ref = resolve(nft.metadata.uri)
-    if (ref?.cid) return ref.cid
+    // Return canonical (ipfs://CID/path) to keep the sub-path intact
+    if (ref?.cid) return ref.canonical
   }
 
   // ✅ Priority 2: tokenURI (should point to metadata JSON, not artifact)
+  // e.g. ipfs://Qmd4GTG.../3.json — path /3.json must not be stripped
   if (isIPFSString(nft.tokenURI)) {
     const ref = resolve(nft.tokenURI)
-    if (ref?.cid) return ref.cid
+    if (ref?.cid) return ref.canonical
   }
 
   // ✅ Priority 3: contractTokenURI
   if (isIPFSString(nft.contractTokenURI)) {
     const ref = resolve(nft.contractTokenURI)
-    if (ref?.cid) return ref.cid
+    if (ref?.cid) return ref.canonical
   }
 
   // Fallback: any CID from the NFT (may be artifact, but better than nothing)

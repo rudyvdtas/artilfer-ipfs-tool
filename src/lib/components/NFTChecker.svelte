@@ -1,4 +1,13 @@
 <script>
+  import BatchSelector from '$lib/components/BatchSelector.svelte'
+  import {
+    saveWalletSession,
+    loadWalletSession,
+    saveBatchResult,
+    clearWalletSession,
+    relativeTime,
+  } from '$lib/walletCache.js'
+
   // ─── State ───────────────────────────────────────────
 
   /** @type {'idle' | 'resolving' | 'fetching' | 'done' | 'scanning' | 'complete' | 'error'} */
@@ -33,6 +42,19 @@
   let batchProgress = { done: 0, total: 0 }
   let batchResults = []
   let batchError = ''
+
+  // ─── Batch-selector state ──────────────────────────────
+  /**
+   * batches[] — de centrale datastructuur voor de BatchSelector.
+   * Elke entry: { index, nftCount, status, jobId?, summary?, nftResults?, completedAt? }
+   */
+  let batches = []
+
+  // ─── Sessie (localStorage) ─────────────────────────────
+  /** Gevonden sessie uit localStorage (vóór de gebruiker kiest wat te doen) */
+  let cachedSession = null
+  /** Toont de "Doorgaan?" prompt */
+  let showSessionPrompt = false
 
   // ─── Helpers ──────────────────────────────────────────
 
@@ -130,6 +152,9 @@
     batchResults = []
     batchError = ''
     onlyIpfs = false
+    batches = []
+    cachedSession = null
+    showSessionPrompt = false
   }
 
   function formatBytes(bytes) {
@@ -143,11 +168,43 @@
    * Collect all scan results regardless of single-job or multi-batch mode.
    * Single mode: scanResult.nfts (from status endpoint)
    * Batch mode:  batchResults (accumulated in-memory across all batches)
+   * @param {number[]|null} batchIndices — filter op batch-indices (null = alles)
    * @returns {Array}
    */
-  function getAllResults() {
-    if (scanMode === 'batch') return batchResults
+  function getAllResults(batchIndices = null) {
+    if (scanMode === 'batch') {
+      if (batchIndices === null) return batchResults
+      // Elk batchResult heeft een batchIndex eigenschap (toegevoegd in runBatchQueue)
+      return batchResults.filter((r) => batchIndices.includes(r._batchIndex ?? -1))
+    }
     return scanResult?.nfts ?? []
+  }
+
+  /**
+   * Bouw een resultatenlijst op uit de batches-array (gecached of in-memory).
+   * Wordt gebruikt door exportfuncties wanneer batchIndices opgegeven zijn.
+   * @param {number[]} batchIndices
+   * @returns {Array}
+   */
+  function getResultsFromBatches(batchIndices) {
+    const results = []
+    for (const idx of batchIndices) {
+      const batch = batches.find((b) => b.index === idx)
+      if (!batch || batch.status !== 'done') continue
+
+      // In-memory resultaten hebben _batchIndex; gecachede hebben nftResults
+      const inMemory = batchResults.filter((r) => r._batchIndex === idx)
+      if (inMemory.length > 0) {
+        results.push(...inMemory)
+      } else if (batch.nftResults) {
+        // Gecachede resultaten: converteer naar het formaat dat downloadManifest verwacht
+        results.push(...batch.nftResults.map((r) => ({
+          ...r,
+          scan: r.scanNodes ? { nodes: r.scanNodes, summary: r.scanSummary } : null,
+        })))
+      }
+    }
+    return results
   }
 
   /**
@@ -166,13 +223,29 @@
     URL.revokeObjectURL(url)
   }
 
-  function downloadManifest() {
-    const results = getAllResults()
+  /**
+   * Download manifest.json.
+   * @param {number[]|null} batchIndices — null = alles, array = specifieke batches
+   */
+  function downloadManifest(batchIndices = null) {
+    const results = batchIndices !== null
+      ? getResultsFromBatches(batchIndices)
+      : getAllResults()
+
+    const isPartial = batchIndices !== null && batchIndices.length < batches.filter((b) => b.status === 'done').length
+
     const manifest = {
       exported: new Date().toISOString(),
       version: '1.0',
       generator: 'NFT Archive Assistant — ARTfilter',
-      summary: scanResult?.summary ?? {},
+      partial: isPartial,
+      batchIndices: batchIndices ?? null,
+      summary: {
+        successful: results.filter((r) => r.status === 'success').length,
+        failed:     results.filter((r) => r.status === 'error').length,
+        totalFiles: results.reduce((s, r) => s + (r.scanSummary?.totalFiles ?? r.scan?.summary?.totalFiles ?? 0), 0),
+        totalBytes: results.reduce((s, r) => s + (r.scanSummary?.totalBytes ?? r.scan?.summary?.totalBytes ?? 0), 0),
+      },
       nfts: results
         .filter((r) => r.status === 'success')
         .map((r) => ({
@@ -186,11 +259,20 @@
           totalBytes: r.scanSummary?.totalBytes ?? r.scan?.summary?.totalBytes ?? 0,
         })),
     }
-    triggerDownload(JSON.stringify(manifest, null, 2), 'nft-manifest.json', 'application/json')
+    const suffix = isPartial ? `-batches-${batchIndices.map((i) => i + 1).join('-')}` : ''
+    triggerDownload(JSON.stringify(manifest, null, 2), `nft-manifest${suffix}.json`, 'application/json')
   }
 
-  function downloadCSV() {
-    const results = getAllResults()
+  /**
+   * Download ready2pin.csv.
+   * @param {number[]|null} batchIndices — null = alles, array = specifieke batches
+   */
+  function downloadCSV(batchIndices = null) {
+    const results = batchIndices !== null
+      ? getResultsFromBatches(batchIndices)
+      : getAllResults()
+
+    const isPartial = batchIndices !== null && batchIndices.length < batches.filter((b) => b.status === 'done').length
 
     const escape = (v) => {
       const s = String(v ?? '')
@@ -211,7 +293,8 @@
       }
 
       // All child CIDs found during the scan
-      const nodes = r.scan?.nodes ?? {}
+      // Ondersteun zowel scan.nodes (in-memory) als scanNodes (gecached)
+      const nodes = r.scan?.nodes ?? r.scanNodes ?? {}
       for (const node of Object.values(nodes)) {
         if (!node.cid || node.error) continue
         if (seen.has(node.cid)) continue
@@ -222,7 +305,8 @@
       }
     }
 
-    triggerDownload(rows.join('\n'), 'ready2pin.csv', 'text/csv')
+    const suffix = isPartial ? `-batches-${batchIndices.map((i) => i + 1).join('-')}` : ''
+    triggerDownload(rows.join('\n'), `ready2pin${suffix}.csv`, 'text/csv')
   }
 
   /**
@@ -273,13 +357,83 @@
 
   // ─── Search ───────────────────────────────────────────
 
+  /**
+   * Verrijk de ruwe NFT-array met gateway-URLs voor images.
+   * @param {Array} rawNfts
+   * @returns {Array}
+   */
+  function enrichNFTs(rawNfts) {
+    return rawNfts.map((nft) => {
+      const rawImage =
+        nft.metadata?.displayUri ||
+        nft.metadata?.thumbnailUri ||
+        nft.metadata?.artifactUri ||
+        nft.metadata?.image ||
+        nft.image ||
+        null
+
+      const rawThumb =
+        nft.metadata?.thumbnailUri ||
+        nft.thumbnail ||
+        nft.metadata?.displayUri ||
+        nft.metadata?.image ||
+        nft.image ||
+        null
+
+      return {
+        ...nft,
+        image: ipfsToHttp(rawImage),
+        thumb: ipfsToHttp(rawThumb),
+      }
+    })
+  }
+
   async function handleSearch() {
     const val = input.trim()
     if (!val) return
 
+    // ── 1. Resolve het adres eerst (goedkoop) ──────────────
     step = 'resolving'
     errorMsg = ''
-    resolved = null
+    cachedSession = null
+    showSessionPrompt = false
+
+    let resolvedData
+    try {
+      const resolveRes = await fetch('/api/nft/resolve', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ input: val }),
+      })
+      resolvedData = await resolveRes.json()
+      if (!resolveRes.ok) throw new Error(resolvedData.error || 'Address resolution failed')
+    } catch (err) {
+      errorMsg = err.message
+      step = 'error'
+      return
+    }
+
+    resolved = resolvedData
+
+    // ── 2. Check of er een sessie in localStorage staat ────
+    const existing = loadWalletSession(resolved.address, resolved.chain)
+    if (existing && existing.nfts?.length > 0) {
+      cachedSession = existing
+      showSessionPrompt = true
+      step = 'done' // grid tonen zodra prompt geaccepteerd wordt
+      return
+    }
+
+    // ── 3. Geen cache → vers ophalen ───────────────────────
+    await fetchNFTsFromChain()
+  }
+
+  /**
+   * Haal de NFT-lijst op van de blockchain en sla op in localStorage.
+   */
+  async function fetchNFTsFromChain() {
+    step = 'fetching'
+    errorMsg = ''
     nfts = []
     fetchDebug = []
     showItemDebug = false
@@ -295,22 +449,9 @@
     batchProgress = { done: 0, total: 0 }
     batchResults = []
     batchError = ''
+    batches = []
 
     try {
-      // 1. Resolve address/ENS/TEZ
-      const resolveRes = await fetch('/api/nft/resolve', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ input: val }),
-      })
-
-      const resolveData = await resolveRes.json()
-      if (!resolveRes.ok) throw new Error(resolveData.error || 'Address resolution failed')
-
-      resolved = resolveData
-      step = 'fetching'
-
-      // 2. Fetch NFTs
       const fetchRes = await fetch(
         `/api/nft/fetch?address=${encodeURIComponent(resolved.address)}&chain=${resolved.chain}`
       )
@@ -318,37 +459,14 @@
       if (!fetchRes.ok) throw new Error(fetchData.error || 'Failed to fetch NFTs')
 
       totalCount = fetchData.totalCount
-      nfts = fetchData.nfts
       fetchDebug = fetchData.debugLog || []
+      nfts = enrichNFTs(fetchData.nfts)
+
       if (onlyIpfs) nfts = nfts.filter((n) => n.hasIPFS)
       selected = onlyIpfs ? new Set(nfts.filter((n) => n.hasIPFS).map((n) => n.id)) : new Set()
 
-
-      nfts = nfts.map((nft) => {
-        // Best display image (web-sized): prefer displayUri > thumbnailUri > artifactUri > image
-        const rawImage =
-          nft.metadata?.displayUri ||
-          nft.metadata?.thumbnailUri ||
-          nft.metadata?.artifactUri ||
-          nft.metadata?.image ||
-          nft.image ||
-          null
-
-        // Best thumbnail (smallest): prefer thumbnailUri > displayUri > image
-        const rawThumb =
-          nft.metadata?.thumbnailUri ||
-          nft.thumbnail ||
-          nft.metadata?.displayUri ||
-          nft.metadata?.image ||
-          nft.image ||
-          null
-
-        return {
-          ...nft,
-          image:    ipfsToHttp(rawImage),
-          thumb:    ipfsToHttp(rawThumb),
-        }
-      })
+      // Sla op in localStorage (zonder images)
+      saveWalletSession(resolved.address, resolved.chain, resolved.displayName ?? null, nfts, totalCount)
 
       step = 'done'
     } catch (err) {
@@ -357,12 +475,93 @@
     }
   }
 
+  /**
+   * Ga verder met de gecachede sessie.
+   * NFTs uit localStorage gebruiken, batch-resultaten herstellen.
+   */
+  function continueFromCache() {
+    if (!cachedSession) return
+    showSessionPrompt = false
+
+    totalCount = cachedSession.totalCount
+    nfts = enrichNFTs(cachedSession.nfts)
+    fetchDebug = []
+    selected = new Set()
+
+    // Herstel batchresultaten uit de cache
+    const savedBatches = cachedSession.batches ?? []
+    if (savedBatches.length > 0) {
+      scanMode = 'batch'
+
+      // Herbouw de batchQueue op basis van de gecachede NFT-volgorde
+      const allNFTs = nfts
+      batchQueue = chunkArray(allNFTs, 50)
+
+      // Herstel batchResults in-memory vanuit gecachede nftResults
+      batchResults = []
+      batches = batchQueue.map((chunk, i) => {
+        const cached = savedBatches.find((b) => b.batchIndex === i)
+        if (cached) {
+          // Voeg _batchIndex toe aan elk resultaat voor filtering
+          const results = cached.nftResults.map((r) => ({ ...r, _batchIndex: i }))
+          batchResults.push(...results)
+          return {
+            index: i,
+            nftCount: chunk.length,
+            status: 'done',
+            jobId: cached.jobId,
+            completedAt: cached.completedAt,
+            summary: cached.summary,
+            nftResults: cached.nftResults,
+          }
+        }
+        return { index: i, nftCount: chunk.length, status: 'pending' }
+      })
+
+      // Bouw scanResult opnieuw op als alle batches voltooid zijn
+      const allDone = batches.every((b) => b.status === 'done')
+      if (allDone && batchResults.length > 0) {
+        scanResult = buildCombinedScanResult(batchResults)
+        step = 'complete'
+      } else {
+        step = 'done'
+      }
+    } else {
+      step = 'done'
+    }
+  }
+
+  /**
+   * Verwijder de cache en haal alles vers op.
+   */
+  async function rescanFresh() {
+    showSessionPrompt = false
+    cachedSession = null
+    clearWalletSession(resolved.address, resolved.chain)
+    await fetchNFTsFromChain()
+  }
+
+  /**
+   * Bouw een gecombineerd scanResult object vanuit een resultaten-array.
+   */
+  function buildCombinedScanResult(results) {
+    return {
+      summary: {
+        successful: results.filter((r) => r.status === 'success').length,
+        failed:     results.filter((r) => r.status === 'error').length,
+        totalFiles: results.reduce((s, r) => s + (r.scanSummary?.totalFiles ?? r.scan?.summary?.totalFiles ?? 0), 0),
+        totalBytes: results.reduce((s, r) => s + (r.scanSummary?.totalBytes ?? r.scan?.summary?.totalBytes ?? 0), 0),
+      },
+      nfts: results,
+    }
+  }
+
   // ─── Scan ─────────────────────────────────────────────
 
   async function startScan() {
     if (selected.size === 0) {
-    errorMsg = 'Select at least one NFT'
-    return
+      errorMsg = 'Select at least one NFT'
+      return
     }
 
     const selectedNFTs = nfts.filter((n) => selected.has(n.id))
@@ -375,10 +574,29 @@
       batchRunning = true
       batchJobs = []
       batchSummary = null
-      batchQueue = chunkArray(selectedNFTs, 50)
-      batchResults = []
+
+      // Bouw batchQueue — maar bewaar indices van bestaande done-batches
+      const newQueue = chunkArray(selectedNFTs, 50)
+      batchQueue = newQueue
+
+      // Initialiseer batches array: bestaande done-batches behouden
+      batches = newQueue.map((chunk, i) => {
+        const existing = batches.find((b) => b.index === i && b.status === 'done')
+        if (existing) return existing
+        return { index: i, nftCount: chunk.length, status: 'pending' }
+      })
+
+      // Verwijder in-memory resultaten die NIET gecached zijn (fresh scan)
+      batchResults = batchResults.filter((r) => {
+        const idx = r._batchIndex
+        return batches.find((b) => b.index === idx && b.status === 'done')
+      })
+
       batchError = ''
-      batchProgress = { done: 0, total: selectedNFTs.length }
+      batchProgress = {
+        done: batchResults.length,
+        total: selectedNFTs.length,
+      }
       await runBatchQueue()
       return
     }
@@ -407,6 +625,82 @@
     }
   }
 
+  /**
+   * Scan alleen de geselecteerde batch-indices (vanuit BatchSelector).
+   * @param {number[]} indices
+   */
+  async function scanSelectedBatches(indices) {
+    if (indices.length === 0) return
+    if (batchRunning) return
+
+    step = 'scanning'
+    scanMode = 'batch'
+    batchRunning = true
+    errorMsg = ''
+
+    // Markeer geselecteerde batches als 'pending' voor herinloop
+    batches = batches.map((b) =>
+      indices.includes(b.index) && b.status === 'pending'
+        ? { ...b, status: 'pending' }
+        : b
+    )
+
+    try {
+      for (const idx of indices) {
+        const batch = batches.find((b) => b.index === idx)
+        if (!batch || batch.status === 'done') continue // skip al voltooide
+
+        const chunk = batchQueue[idx]
+        if (!chunk) continue
+
+        // Markeer als 'running'
+        batches = batches.map((b) => b.index === idx ? { ...b, status: 'running' } : b)
+
+        const res = await fetch('/api/nft/scan-batch', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ nfts: chunk }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Batch scan starten mislukt')
+
+        const jobIdLocal = data.jobId
+        batchJobs = [...batchJobs, jobIdLocal]
+
+        const result = await pollScanForBatch(jobIdLocal, chunk.length)
+        const newNfts = result.nfts.map((r) => ({ ...r, _batchIndex: idx }))
+        batchResults = [...batchResults.filter((r) => r._batchIndex !== idx), ...newNfts]
+
+        // Sla op in localStorage
+        if (resolved) {
+          saveBatchResult(resolved.address, resolved.chain, idx, jobIdLocal, result.nfts, result.summary)
+        }
+
+        // Update batch status → done
+        batches = batches.map((b) =>
+          b.index === idx
+            ? { ...b, status: 'done', jobId: jobIdLocal, completedAt: Date.now(), summary: result.summary, nftResults: result.nfts }
+            : b
+        )
+
+        batchProgress = { done: batchResults.length, total: batchQueue.flat().length }
+      }
+
+      // Als alle batches klaar zijn → complete
+      const allDone = batches.every((b) => b.status === 'done')
+      scanResult = buildCombinedScanResult(batchResults)
+      step = allDone ? 'complete' : 'done'
+    } catch (err) {
+      batchError = err.message
+      errorMsg = err.message
+      // Zet running batches terug op pending
+      batches = batches.map((b) => b.status === 'running' ? { ...b, status: 'pending' } : b)
+      step = 'done'
+    } finally {
+      batchRunning = false
+    }
+  }
+
   function chunkArray(items, size) {
     const chunks = []
     for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size))
@@ -416,7 +710,18 @@
   async function runBatchQueue() {
     try {
       for (let i = 0; i < batchQueue.length; i++) {
+        // Skip batches die al 'done' zijn (vanuit cache of eerder gescand)
+        const currentBatch = batches.find((b) => b.index === i)
+        if (currentBatch?.status === 'done') {
+          batchProgress = { done: batchProgress.done + batchQueue[i].length, total: batchProgress.total }
+          continue
+        }
+
         const chunk = batchQueue[i]
+
+        // Markeer als 'running' in de batches array
+        batches = batches.map((b) => b.index === i ? { ...b, status: 'running' } : b)
+
         const res = await fetch('/api/nft/scan-batch', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -426,28 +731,38 @@
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Batch scan starten mislukt')
 
-        batchJobs = [...batchJobs, data.jobId]
-        const result = await pollScanForBatch(data.jobId, chunk.length)
-        batchResults = [...batchResults, ...result.nfts]
+        const jobIdLocal = data.jobId
+        batchJobs = [...batchJobs, jobIdLocal]
+
+        const result = await pollScanForBatch(jobIdLocal, chunk.length)
+
+        // Tag elk resultaat met zijn batch-index voor filtering
+        const taggedNfts = result.nfts.map((r) => ({ ...r, _batchIndex: i }))
+        batchResults = [...batchResults, ...taggedNfts]
         batchSummary = result.summary
-        batchProgress = { done: Math.min(selected.size, batchProgress.done + chunk.length), total: selected.size }
+        batchProgress = { done: batchProgress.done + chunk.length, total: batchProgress.total }
+
+        // Sla batch-resultaat direct op in localStorage → gebruiker kan al exporteren!
+        if (resolved) {
+          saveBatchResult(resolved.address, resolved.chain, i, jobIdLocal, result.nfts, result.summary)
+        }
+
+        // Update batch status naar 'done' → BatchSelector kleurt hem groen
+        batches = batches.map((b) =>
+          b.index === i
+            ? { ...b, status: 'done', jobId: jobIdLocal, completedAt: Date.now(), summary: result.summary, nftResults: result.nfts }
+            : b
+        )
       }
 
-      // Create a combined result view for the UI.
-      scanResult = {
-        summary: {
-          successful: batchResults.filter((r) => r.status === 'success').length,
-          failed: batchResults.filter((r) => r.status === 'error').length,
-          totalFiles: batchResults.reduce((sum, r) => sum + (r.scan?.summary?.totalFiles || 0), 0),
-          totalBytes: batchResults.reduce((sum, r) => sum + (r.scan?.summary?.totalBytes || 0), 0),
-        },
-        nfts: batchResults,
-      }
+      scanResult = buildCombinedScanResult(batchResults)
       step = 'complete'
     } catch (err) {
       batchError = err.message
       errorMsg = err.message
-      step = 'error'
+      // Zet actieve batch terug op pending
+      batches = batches.map((b) => b.status === 'running' ? { ...b, status: 'pending' } : b)
+      step = 'done'
     } finally {
       batchRunning = false
     }
@@ -501,6 +816,33 @@
       }
     }
     throw new Error('Batch scan time-out')
+  }
+
+  // ─── startScan wrapper voor BatchSelector ─────────────
+
+  /**
+   * Aangeroepen door BatchSelector wanneer de gebruiker specifieke
+   * pending batches wil scannen.
+   * @param {number[]} indices
+   */
+  function handleScanSelectedBatches(indices) {
+    scanSelectedBatches(indices)
+  }
+
+  /**
+   * Aangeroepen door BatchSelector voor JSON export van specifieke batches.
+   * @param {number[]} indices
+   */
+  function handleExportJSON(indices) {
+    downloadManifest(indices)
+  }
+
+  /**
+   * Aangeroepen door BatchSelector voor CSV export van specifieke batches.
+   * @param {number[]} indices
+   */
+  function handleExportCSV(indices) {
+    downloadCSV(indices)
   }
 
   // ─── Keyboard ─────────────────────────────────────────
@@ -577,8 +919,39 @@
     {/if}
   </div>
 
+  <!-- ── Sessie-prompt (localStorage cache gevonden) ── -->
+  {#if showSessionPrompt && cachedSession}
+    {@const doneBatchCount = (cachedSession.batches ?? []).length}
+    {@const totalBatchCount = Math.ceil((cachedSession.nfts?.length ?? 0) / 50)}
+    <div class="card session-prompt">
+      <div class="session-prompt-header">
+        <span class="session-icon">🗓</span>
+        <div class="session-prompt-info">
+          <strong>Sessie gevonden</strong>
+          <span class="session-age">{relativeTime(cachedSession.savedAt)}</span>
+        </div>
+      </div>
+      <p class="session-desc">
+        {cachedSession.nfts?.length ?? 0} NFTs geladen
+        {#if doneBatchCount > 0}
+          · <span class="session-done">{doneBatchCount} van {totalBatchCount} batch{totalBatchCount === 1 ? '' : 'es'} al gescand</span>
+        {:else}
+          · nog geen scans uitgevoerd
+        {/if}
+      </p>
+      <div class="session-actions">
+        <button class="btn btn-primary" onclick={continueFromCache}>
+          ▶ Doorgaan
+        </button>
+        <button class="btn btn-secondary" onclick={rescanFresh}>
+          🔄 Opnieuw laden van blockchain
+        </button>
+      </div>
+    </div>
+  {/if}
+
   <!-- ── Step 2: NFT lijst ───────────────────────── -->
-  {#if step === 'done' || step === 'scanning' || step === 'complete'}
+  {#if !showSessionPrompt && (step === 'done' || step === 'scanning' || step === 'complete')}
     <div class="card">
       <div class="card-label">
         <span class="step-num">2</span>
@@ -590,9 +963,7 @@
       </div>
 
       {#if nfts.length === 0}
-      <p class="empty-msg">
-      No NFTs found for this address.
-      </p>
+        <p class="empty-msg">No NFTs found for this address.</p>
       {:else}
 
         <div class="selection-bar">
@@ -638,7 +1009,6 @@
                   onerror={(e) => {
                     const el = e.currentTarget
                     const src = el.src || ''
-                    // Gateway fallback chain: w3s.link → cloudflare → ipfs.io → hide
                     if (src.includes('w3s.link')) {
                       el.src = src.replace('https://w3s.link/ipfs/', 'https://cloudflare-ipfs.com/ipfs/')
                     } else if (src.includes('cloudflare-ipfs.com')) {
@@ -669,7 +1039,8 @@
           {/each}
         </div>
 
-        {#if step === 'done'}
+        {#if step === 'done' && batches.length === 0}
+          <!-- Eerste scan: nog geen batches aangemaakt -->
           <button
             class="btn btn-primary btn-full"
             onclick={startScan}
@@ -680,8 +1051,18 @@
           {#if selected.size > 50}
             <p class="hint batch-hint">
               This selection is automatically split into batches of 50 and processed sequentially.
+              Je kunt voltooide batches al downloaden terwijl de rest nog bezig is.
             </p>
           {/if}
+        {:else if step === 'done' && batches.length > 0 && batches.some((b) => b.status === 'pending')}
+          <!-- Herstart-modus: er zijn nog pending batches -->
+          <button
+            class="btn btn-primary btn-full"
+            onclick={startScan}
+            disabled={batchRunning || selected.size === 0}
+          >
+            ▶ Scan resterende {batches.filter((b) => b.status === 'pending').length} batch{batches.filter((b) => b.status === 'pending').length === 1 ? '' : 'es'}
+          </button>
         {/if}
       {/if}
 
@@ -712,18 +1093,28 @@
       <div class="card-label">
         <span class="step-num">3</span>
         <span>Scanning…</span>
+        {#if scanMode === 'batch'}
+          <span class="count-badge">
+            {batches.filter((b) => b.status === 'done').length} / {batches.length} batches klaar
+          </span>
+        {/if}
       </div>
 
       <div class="progress-block">
         <div class="progress-bar-track">
           <div
             class="progress-bar-fill"
-            style:width="{scanMode === 'batch' ? (batchProgress.total > 0 ? (batchProgress.done / batchProgress.total) * 100 : 0) : (progress.total > 0 ? (progress.current / progress.total) * 100 : 0)}%"
+            style:width="{scanMode === 'batch'
+              ? (batchProgress.total > 0 ? Math.min(100, (batchProgress.done / batchProgress.total) * 100) : 0)
+              : (progress.total > 0 ? (progress.current / progress.total) * 100 : 0)}%"
           ></div>
         </div>
         <p class="progress-label">
           {#if scanMode === 'batch'}
             {batchProgress.done} / {batchProgress.total} NFTs verwerkt
+            {#if batches.filter((b) => b.status === 'done').length > 0}
+              · Voltooide batches zijn al downloadbaar ↓
+            {/if}
           {:else}
             {progress.current} / {progress.total} NFTs gescand
           {/if}
@@ -732,11 +1123,35 @@
     </div>
   {/if}
 
-  <!-- ── Step 4: Resultaat + Export ────────────── -->
-  {#if step === 'complete' && scanResult}
+  <!-- ── Batch selector (zichtbaar zodra er ≥1 batch bestaat) ── -->
+  {#if !showSessionPrompt && scanMode === 'batch' && batches.length > 0}
     <div class="card">
       <div class="card-label">
         <span class="step-num">3</span>
+        <span>Batches</span>
+        {#if batchRunning}
+          <span class="scanning-indicator">bezig…</span>
+        {/if}
+      </div>
+      <p class="hint">
+        Voltooide batches (groen) zijn direct downloadbaar. Selecteer batches om te exporteren of opnieuw te scannen.
+      </p>
+      <BatchSelector
+        {batches}
+        {batchRunning}
+        activeBatchIndex={batches.findIndex((b) => b.status === 'running')}
+        onScanSelected={handleScanSelectedBatches}
+        onExportJSON={handleExportJSON}
+        onExportCSV={handleExportCSV}
+      />
+    </div>
+  {/if}
+
+  <!-- ── Step 4: Resultaat + Export (enkelvoudige scan of alles klaar) ── -->
+  {#if step === 'complete' && scanResult && scanMode === 'single'}
+    <div class="card">
+      <div class="card-label">
+        <span class="step-num">4</span>
         <span>Scan complete</span>
       </div>
 
@@ -785,41 +1200,12 @@
 
       <!-- Export buttons -->
       <div class="export-row">
-        <button class="btn btn-secondary" onclick={downloadManifest}>
-          📄 manifest
+        <button class="btn btn-secondary" onclick={() => downloadManifest(null)}>
+          📄 manifest.json
         </button>
-        <button class="btn btn-secondary" onclick={downloadCSV}>
-          📋 ready2pin
+        <button class="btn btn-secondary" onclick={() => downloadCSV(null)}>
+          📋 ready2pin.csv
         </button>
-      </div>
-    </div>
-  {/if}
-
-  {#if scanMode === 'batch' && (batchRunning || batchJobs.length > 0)}
-    <div class="card">
-      <div class="card-label">
-        <span class="step-num">3</span>
-        <span>Batch queue</span>
-        <span class="count-badge">{batchJobs.length + (batchRunning ? 1 : 0)} / {batchQueue.length} active</span>
-      </div>
-      <p class="hint">NFTs are automatically split into batches of 50 and scanned sequentially.</p>
-
-      <div class="batch-overview">
-        {#each batchQueue as chunk, i}
-          <div class="batch-item" class:done={i < batchJobs.length} class:active={batchRunning && i === batchJobs.length}>
-            <span class="batch-item-title">Batch {i + 1}/{batchQueue.length}</span>
-            <span class="batch-item-count">{chunk.length} NFTs</span>
-            <span class="batch-item-status">
-              {#if i < batchJobs.length}
-                ✅ klaar
-              {:else if batchRunning && i === batchJobs.length}
-                ⏳ bezig
-              {:else}
-                ⏱️ wacht
-              {/if}
-            </span>
-          </div>
-        {/each}
       </div>
     </div>
   {/if}
@@ -1329,6 +1715,77 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* ── Sessie-prompt ──────────────────────────── */
+
+  .session-prompt {
+    border-color: rgba(59, 130, 246, 0.3) !important;
+    background: rgba(239, 246, 255, 0.9) !important;
+  }
+
+  .session-prompt-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .session-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+
+  .session-prompt-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .session-prompt-info strong {
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+
+  .session-age {
+    font-size: 0.76rem;
+    color: #64748b;
+  }
+
+  .session-desc {
+    font-size: 0.84rem;
+    color: #475569;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .session-done {
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  .session-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* ── Scanning indicator ──────────────────────── */
+
+  .scanning-indicator {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-left: auto;
+    animation: blink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
   }
 
   /* ── Export ──────────────────────────────────── */
