@@ -3,6 +3,8 @@
  * for NFT batch scan results.
  */
 
+import { extensionFromContentType } from '$lib/server/ipfs/resolver.js'
+
 /**
  * ✅ Build a manifest.json from a completed batch job result.
  *
@@ -103,52 +105,11 @@ export function buildReadyToPinCSV(jobResult) {
  * @returns {string}
  */
 function resolveNodeName(node) {
-  const contentType = String(node.contentType || '').toLowerCase()
-
-  // Derive correct extension from actual content-type
-  const ext = extensionFromContentType(contentType, node.kind)
-
-  // Strip any previously appended extension from the stored name
+  const ext = extensionFromContentType(node.contentType, node.kind)
   const baseName = (node.name || node.cid.slice(0, 16))
-    .replace(/\.(json|txt|bin|html|htm)$/i, '')  // remove wrongly guessed exts
+    .replace(/\.(json|txt|bin|html|htm)$/i, '')
     .toLowerCase()
-
   return ext ? `${baseName}${ext}` : baseName
-}
-
-/**
- * Map a MIME content-type to a file extension.
- * Returns empty string when the type is unknown.
- *
- * @param {string} contentType
- * @param {string} [kind]
- * @returns {string}
- */
-function extensionFromContentType(contentType, kind) {
-  if (contentType.includes('json'))           return '.json'
-  if (contentType === 'image/png')            return '.png'
-  if (contentType === 'image/jpeg' ||
-      contentType === 'image/jpg')            return '.jpg'
-  if (contentType === 'image/gif')            return '.gif'
-  if (contentType === 'image/webp')           return '.webp'
-  if (contentType === 'image/svg+xml')        return '.svg'
-  if (contentType === 'image/avif')           return '.avif'
-  if (contentType === 'video/mp4')            return '.mp4'
-  if (contentType === 'video/webm')           return '.webm'
-  if (contentType === 'video/quicktime')      return '.mov'
-  if (contentType === 'audio/mpeg')           return '.mp3'
-  if (contentType === 'audio/wav')            return '.wav'
-  if (contentType === 'audio/ogg')            return '.ogg'
-  if (contentType === 'audio/flac')           return '.flac'
-  if (contentType === 'model/gltf+json')      return '.gltf'
-  if (contentType === 'model/gltf-binary')    return '.glb'
-  if (contentType.startsWith('text/html'))    return '.html'
-  if (contentType.startsWith('text/'))        return '.txt'
-  // Fallback to kind
-  if (kind === 'json')   return '.json'
-  if (kind === 'html')   return '.html'
-  if (kind === 'text')   return '.txt'
-  return ''
 }
 
 /**

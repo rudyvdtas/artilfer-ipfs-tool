@@ -1,25 +1,12 @@
 /**
- * Vercel KV-backed job store
- * STUB: Always returns null to indicate KV not available
- * Falls back to filesystem automatically
+ * job-store-kv.js — Vercel KV stub (not in use)
+ *
+ * This file is no longer imported. job-store.js delegates directly
+ * to job-store-fs.js for all environments.
+ *
+ * To add a real KV backend: implement the same interface as job-store-fs.js
+ * and wire it in job-store.js.
+ *
+ * This file can be safely deleted from the repository.
  */
-
-export async function createJob(jobId) {
-  return null  // KV not available, use fallback
-}
-
-export async function loadJob(jobId) {
-  return null  // KV not available, use fallback
-}
-
-export async function updateJob(jobId, patch) {
-  return null  // KV not available, use fallback
-}
-
-export async function jobExists(jobId) {
-  return false  // KV not available, use fallback
-}
-
-export async function isKvAvailable() {
-  return false  // KV not available
-}
+export {}

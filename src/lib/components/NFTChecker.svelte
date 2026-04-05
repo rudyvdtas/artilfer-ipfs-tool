@@ -428,7 +428,7 @@
 
         batchJobs = [...batchJobs, data.jobId]
         const result = await pollScanForBatch(data.jobId, chunk.length)
-        batchResults = [...batchResults, ...result.results]
+        batchResults = [...batchResults, ...result.nfts]
         batchSummary = result.summary
         batchProgress = { done: Math.min(selected.size, batchProgress.done + chunk.length), total: selected.size }
       }

@@ -446,6 +446,42 @@ function normalize(value) {
 
 // ── Helpers ──
 
+/**
+ * Map a MIME content-type to a file extension.
+ * Shared by exporter.js, export-builder.js, and the Svelte components.
+ * Returns empty string for unknown types.
+ *
+ * @param {string} contentType
+ * @param {string} [kind]
+ * @returns {string}
+ */
+export function extensionFromContentType(contentType, kind) {
+  const ct = String(contentType || '').toLowerCase()
+  if (ct.includes('json'))            return '.json'
+  if (ct === 'image/png')             return '.png'
+  if (ct === 'image/jpeg' ||
+      ct === 'image/jpg')             return '.jpg'
+  if (ct === 'image/gif')             return '.gif'
+  if (ct === 'image/webp')            return '.webp'
+  if (ct === 'image/svg+xml')         return '.svg'
+  if (ct === 'image/avif')            return '.avif'
+  if (ct === 'video/mp4')             return '.mp4'
+  if (ct === 'video/webm')            return '.webm'
+  if (ct === 'video/quicktime')       return '.mov'
+  if (ct === 'audio/mpeg')            return '.mp3'
+  if (ct === 'audio/wav')             return '.wav'
+  if (ct === 'audio/ogg')             return '.ogg'
+  if (ct === 'audio/flac')            return '.flac'
+  if (ct === 'model/gltf+json')       return '.gltf'
+  if (ct === 'model/gltf-binary')     return '.glb'
+  if (ct.startsWith('text/html'))     return '.html'
+  if (ct.startsWith('text/'))         return '.txt'
+  if (kind === 'json')   return '.json'
+  if (kind === 'html')   return '.html'
+  if (kind === 'text')   return '.txt'
+  return ''
+}
+
 export function safeFilename(value) {
   return String(value || 'archive')
     .normalize('NFKD')
