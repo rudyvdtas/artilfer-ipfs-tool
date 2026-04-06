@@ -34,8 +34,13 @@
 
   .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(120px, 120px));
     gap: 12px;
+    justify-content: start;
+  }
+
+  .gallery-grid > * {
+    width: 120px;
   }
 
   .thumb-card {
@@ -45,6 +50,8 @@
     padding: 8px;
     box-shadow: var(--color-card-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .thumb-card:hover {

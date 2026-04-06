@@ -33,7 +33,7 @@
   }
 
   const navItems = [
-    { key: 'index', label: 'Index', icon: '📚' },
+    { key: 'index', label: 'Indexer', icon: '📚' },
     { key: 'pinned', label: 'Pinned', icon: icons.pinned },
     { key: 'nft-checker', label: 'NFT Wallet Checker', icon: icons.nft },
     { key: 'scanner', label: 'Direct CID Scan', icon: icons.scan },
@@ -132,11 +132,13 @@
     <!-- ── Header ─────────────────────────────────── -->
     <header class="header">
       <div class="header-brand">
-        <div class="brand-row brand-mark">
+        <div class="brand-row brand-mark header-brand-row">
           <img src="/icons/favicon.svg" alt="" aria-hidden="true" class="brand-logo brand-logo-glow" />
-          <span class="brand-title">ARTfilter</span>
+          <div class="header-brand-copy">
+            <span class="brand-title">ARTfilter</span>
+            <h1 class="header-tagline">Preservation starts with taking responsibility.</h1>
+          </div>
         </div>
-        <h1 class="header-tagline">Preservation starts with taking responsibility.</h1>
       </div>
 
       <div class="donate-header-wrap">
@@ -193,8 +195,12 @@
         <div class="index-hero">
           <h2>Index</h2>
           <p>
-            Use this index to look the ROOTCIDS which makes it easy to archive the pieces by yourself. Contact me for request or questions.
+            Browse ROOTCIDS to archive pieces independently.
           </p>
+          <div class="hero-cta-row">
+            <span class="hero-cta-circle" aria-hidden="true"></span>
+            <span class="hero-cta-subtext">Need help? Reach out.</span>
+          </div>
         </div>
 
         <section class="index-grid">
@@ -224,11 +230,15 @@
     {#if activeTab === 'pinned'}
       <div class="step pinned-page">
         <div class="pinned-hero">
-          <div>
-            <h2>Pinned by Artfilter</h2>
+          <div class="pinned-hero-copy">
+            <h2>Pinned by ARTfilter</h2>
             <p>
-              Curated archive entries selected for stable reference and preservation. -> contact me for requests or questions.
+              Curated archive entries preserved for stable reference.
             </p>
+            <div class="hero-cta-row">
+              <span class="hero-cta-circle" aria-hidden="true"></span>
+              <span class="hero-cta-subtext">For requests or questions</span>
+            </div>
           </div>
         </div>
 
@@ -267,17 +277,17 @@
         <section class="about-section">
           <h3>Our approach</h3>
           <p>
-            Artfilter doesn't claim ownership, judge value, or promise permanence. We're not optimizing for engagement — we're optimizing for continuity. Curation is human. Preservation is collaborative.
+            Artfilter doesn't claim ownership, judge value, or promise permanence. We're optimizing for continuity, not engagement. Curation is human. Preservation is collaborative.
           </p>
           <p>
-            By making curation explicit and references portable, collectors and curators can carry digital art forward — together.
+            By making curation explicit and references portable, collectors and curators can carry digital art forward together.
           </p>
         </section>
 
         <section class="about-section">
           <h3>Why this matters</h3>
           <p>
-            Blockchain ownership doesn't guarantee the files themselves are stored safely. Many NFTs point to IPFS — which is unreliable without active redundancy. Artfilter maps where and how your NFTs technically exist, so you can archive responsibly.
+            Blockchain ownership doesn't guarantee files are stored safely. Many NFTs point to IPFS—which is unreliable without active redundancy. Artfilter maps where and how your NFTs technically exist, so you can archive responsibly.
           </p>
           <p>
             Digital art only survives if we collectively preserve it.
@@ -290,8 +300,27 @@
             <li>Enter your wallet address (0x…, tz…, KT1…, ENS or Tezos Domains)</li>
             <li>Browse your collection</li>
             <li>Select items and add them to your archive</li>
-            <li>Export your selection as manifest.json for the metadata and ready2pin.csv which you can upload to Pinata: it imports the files from the original location and stores them again -> creating redundancy.</li>
+            <li>Export as manifest.json and ready2pin.csv. Upload to Pinata to create redundancy.</li>
           </ul>
+        </section>
+
+        <section class="about-section">
+          <h3>Pinned collections</h3>
+          <p>
+            Artfilter has curated and pinned key collections for preservation. Browse the gallery or explore ROOTCIDS in the Indexer to archive them yourself or contribute to redundancy.
+          </p>
+          <div class="about-actions">
+            <button class="about-link" type="button" onclick={() => (activeTab = 'pinned')}>View gallery</button>
+            <button class="about-link" type="button" onclick={() => (activeTab = 'index')}>Indexer</button>
+            <a class="about-link donate-link" href="mailto:info@artfilter.io">Donate</a>
+          </div>
+        </section>
+
+        <section class="about-section">
+          <h3>Questions or requests?</h3>
+          <p>
+            Reach out on Twitter or send a DM. I'm here to help.
+          </p>
         </section>
       </div>
     {/if}
@@ -384,14 +413,21 @@
 
   @media (max-width: 768px) {
     .header {
-      flex-direction: column;
+      flex-direction: row;
       align-items: flex-start;
       padding: 14px 12px 10px;
       gap: 8px;
     }
 
+    .header-brand {
+      min-width: 0;
+      flex: 1;
+    }
+
     .donate-header-wrap {
-      align-self: flex-end;
+      align-self: flex-start;
+      margin-top: 0;
+      margin-right: 2px;
     }
 
     h1 {
@@ -407,6 +443,8 @@
     gap: 6px;
     flex-shrink: 0;
     z-index: 9990;
+    align-self: flex-start;
+    margin-top: 0;
   }
 
   .donate-circle {
@@ -422,19 +460,20 @@
 
   @media (max-width: 500px) {
     .donate-circle {
-      width: 56px;
-      height: 56px;
+      width: 38px;
+      height: 38px;
     }
 
     .donate-label {
-      font-size: 0.7rem;
+      display: none;
     }
   }
 
   .donate-circle-icon {
-    font-size: 1.2rem;
+    font-size: 1rem;
     line-height: 1;
   }
+
 
   .donate-label {
     font-size: 0.78rem;
@@ -526,10 +565,33 @@
     gap: 12px;
   }
 
+  .header-brand-row {
+    justify-content: center;
+    width: 100%;
+    transform: translateY(8px);
+    text-align: center;
+  }
+
+  .header-brand-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+  }
+
   .header .brand-logo {
     width: 32px;
     height: 32px;
     margin-top: 2px;
+  }
+
+  @media (max-width: 500px) {
+    .header .brand-logo {
+      width: 24px;
+      height: 24px;
+      margin-top: 0;
+    }
   }
 
   .brand-logo {
@@ -582,6 +644,7 @@
     font-weight: 500;
     letter-spacing: 0.02em;
     color: color-mix(in srgb, #1b140e 80%, transparent);
+    margin: 0;
   }
 
   h1 {
@@ -596,6 +659,23 @@
     h1 {
       font-size: 1.3rem;
       font-weight: 300;
+    }
+
+    .header-brand-copy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 1;
+    }
+
+    .header-brand-row {
+      gap: 18px;
+      justify-content: center;
+    }
+
+    .header-tagline {
+      display: none;
     }
   }
 
@@ -770,13 +850,58 @@
   .pinned-hero {
     display: flex;
     flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-cta-row {
+    display: inline-flex;
+    align-items: center;
     gap: 10px;
   }
 
-  .pinned-hero p {
+  .hero-cta-circle {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #0F6E56;
+    box-shadow:
+      0 0 0 1px rgba(15, 110, 86, 0.22),
+      0 6px 14px rgba(15, 110, 86, 0.28),
+      0 0 18px rgba(15, 110, 86, 0.24);
+    flex-shrink: 0;
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .hero-cta-row:hover .hero-cta-circle {
+    background: #085041;
+    transform: translateY(-1px);
+    box-shadow:
+      0 0 0 1px rgba(8, 80, 65, 0.26),
+      0 8px 18px rgba(8, 80, 65, 0.34),
+      0 0 22px rgba(8, 80, 65, 0.28);
+  }
+
+  .hero-cta-subtext {
+    font-size: 0.8125rem;
+    color: #6b7280;
+  }
+
+  .pinned-hero {
+    align-items: center;
+    text-align: center;
+  }
+
+  .pinned-hero-copy {
+    max-width: 760px;
+  }
+
+  .pinned-hero p,
+  .index-hero p {
     margin: 0;
-    color: #4f463f;
-    line-height: 1.7;
+    color: #6b7280;
+    line-height: 1.5;
+    font-size: 0.8125rem;
+    max-width: 42rem;
   }
 
   .pinned-hero h2 {
@@ -830,9 +955,12 @@
   }
 
   .index-hero h2,
+  .pinned-hero h2,
   .pinned-intro h2 {
     margin: 0;
-    font-size: clamp(1.4rem, 3.6vw, 2rem);
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.15;
   }
 
   .index-hero p,
@@ -935,6 +1063,38 @@
     padding-left: 20px;
     display: grid;
     gap: 8px;
+  }
+
+  .about-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .about-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(15, 110, 86, 0.28);
+    background: rgba(15, 110, 86, 0.08);
+    color: #0F6E56;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .about-link:hover {
+    background: rgba(15, 110, 86, 0.14);
+    border-color: rgba(8, 80, 65, 0.36);
+    transform: translateY(-1px);
+  }
+
+  .donate-link {
+    background: rgba(15, 110, 86, 0.12);
   }
 
   .step-description {
