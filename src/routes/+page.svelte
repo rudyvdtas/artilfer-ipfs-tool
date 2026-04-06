@@ -25,6 +25,10 @@
     mobileMenuOpen = false
   }
 
+  const toggleDonate = () => {
+    donateOpen = !donateOpen
+  }
+
   const icons = {
     nft: '👤',
     scan: '🔍',
@@ -142,13 +146,14 @@
       </div>
 
       <div class="donate-header-wrap">
-        <button class="donate-circle" onclick={() => (donateOpen = !donateOpen)} aria-expanded={donateOpen} aria-label="Donate information tonen">
+        <button class="donate-circle" type="button" onclick={toggleDonate} aria-expanded={donateOpen} aria-label="Donate information tonen">
           <span class="donate-circle-icon">❤️</span>
         </button>
         <span class="donate-label">donate</span>
 
         {#if donateOpen}
-          <div class="donate-popover">
+          <div class="donate-overlay" role="presentation" onclick={() => (donateOpen = false)}>
+            <div class="donate-popover" role="dialog" aria-modal="true" aria-label="Donate information">
             <button class="donate-close" type="button" onclick={() => (donateOpen = false)} aria-label="Close donate popup">×</button>
             <p>Support the project via ETH or Tezos.</p>
             <div class="support-row">
@@ -164,6 +169,7 @@
                 <code>tz2DyCi5fFjzwPePL1WE4TYENuPHH7nAuu43</code>
               </div>
               <button type="button" class="copy-btn" onclick={() => donateAddress('tz2DyCi5fFjzwPePL1WE4TYENuPHH7nAuu43')}>Copy</button>
+            </div>
             </div>
           </div>
         {/if}
@@ -312,7 +318,7 @@
           <div class="about-actions">
             <button class="about-link" type="button" onclick={() => (activeTab = 'pinned')}>View gallery</button>
             <button class="about-link" type="button" onclick={() => (activeTab = 'index')}>Indexer</button>
-            <a class="about-link donate-link" href="mailto:info@artfilter.io">Donate</a>
+            <button class="about-link donate-link" type="button" onclick={toggleDonate}>Donate</button>
           </div>
         </section>
 
@@ -482,17 +488,25 @@
     color: #6a5747;
   }
 
+  .donate-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    background: rgba(15, 23, 42, 0.22);
+    padding: 24px;
+  }
+
   .donate-popover {
-    position: absolute;
-    top: 78px;
-    right: 0;
+    position: relative;
     width: min(320px, calc(100vw - 40px));
     padding: 18px 14px 14px;
     border-radius: 14px;
     border: 1px solid var(--border);
     background: #ffffff;
     box-shadow: 0 18px 40px rgba(15,23,42,0.18);
-    z-index: 10000;
+    z-index: 10001;
     display: flex;
     flex-direction: column;
     gap: 10px;
