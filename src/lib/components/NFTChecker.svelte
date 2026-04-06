@@ -1885,7 +1885,45 @@
     .input-row { flex-direction: column; }
     .btn-primary { width: 100%; }
     .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .nft-grid { grid-template-columns: repeat(2, 1fr); }
+    .nft-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .nft-card {
+      padding: 6px;
+      border-radius: 12px;
+      gap: 6px;
+    }
+    .nft-card-check {
+      top: 6px;
+      right: 6px;
+    }
+    .checkbox {
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+    }
+    .nft-thumb {
+      aspect-ratio: 1;
+      border-radius: 7px;
+    }
+    .nft-thumb-placeholder {
+      font-size: 1.15rem;
+    }
+    .nft-info {
+      gap: 2px;
+    }
+    .nft-name {
+      font-size: 0.7rem;
+    }
+    .nft-cids {
+      font-size: 0.62rem;
+      line-height: 1.2;
+    }
+    .chain-tag-sm {
+      font-size: 0.58rem;
+      padding: 1px 5px;
+    }
     .export-row { flex-direction: column; }
   }
 </style>

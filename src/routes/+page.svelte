@@ -45,17 +45,52 @@
     },
   ]
 
-  const pinnedProject = {
-    title: 'First Supper',
-    image: '/first-supper.jpg',
-    asyncUrl: 'https://www.async.art/v2/0?referrer=masters',
-    ipfsUrl: 'https://ipfs.io/ipfs/bafybeigfi7lhhgtmwavftjr4wkz47pljq5xk5wsbxvjrlycjxbzdwgesxm/',
-  }
+  const pinnedProjects = [
+    {
+      title: 'First Supper',
+      image: '/first-supper.jpg',
+      asyncUrl: 'https://www.async.art/v2/0?referrer=masters',
+      ipfsUrl: 'https://ipfs.io/ipfs/bafybeigfi7lhhgtmwavftjr4wkz47pljq5xk5wsbxvjrlycjxbzdwgesxm/',
+    },
+    {
+      title: 'The Cunégonde Dilemma',
+      image: '/thumbs/the-cunegonde-dilemma.jpg',
+      asyncUrl: 'https://www.async.art/v2/0?referrer=masters',
+      ipfsUrl: 'https://ipfs.io/ipfs/QmUVaaE39kcdnU5G91xFQEyfeMcW8qYSjLyXoiru14q6mH',
+    },
+  ]
+
+  const indexEntries = [
+    {
+      rootCid: 'Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw',
+      project: 'Looking For Satoshi',
+      artists: 'Rutger van der Tas',
+      platform: 'ASYNC.ART',
+    },
+    {
+      rootCid: 'QmQEQYguTJ4ApkCJ8J5wSMGFfgZLP5Xz4w7yGArFdHkVjr',
+      project: 'GRIFTERS',
+      artists: 'XCOPY',
+      platform: 'ASYNC.ART',
+    },
+    {
+      rootCid: 'Qmaje8byBxmFTHDjCvDYLy1NPZkUX1Etx1agDw5HxNqtef',
+      project: 'First Supper',
+      artists: 'Shortcut, Josie Bellini, Sparrow (Digitial), Mlibty, Vans Design, Alotta Money, Twisted Vacancy, Coldie, Hackatao, XCOPY, Matt Kane, Rutger van der Tas, and DIGITAL.',
+      platform: 'ASYNC.ART',
+    },
+    {
+      rootCid: 'QmUVaaE39kcdnU5G91xFQEyfeMcW8qYSjLyXoiru14q6mH',
+      project: 'The Cunégonde Dilemma',
+      artists: 'Alotta Money',
+      platform: 'ASYNC.ART',
+    },
+  ]
 
   // ─── Tab state ────────────────────────────────────────
 
-  /** @type {'scanner' | 'nft-checker' | 'about' | 'pinned'} */
-  let activeTab = 'nft-checker'
+  /** @type {'index' | 'scanner' | 'nft-checker' | 'about' | 'pinned'} */
+  let activeTab = 'pinned'
 </script>
 
 <svelte:head>
@@ -111,11 +146,11 @@
       <div class="tabs-desktop">
         <button
           class="tab"
-          class:active={activeTab === 'about'}
-          onclick={() => (activeTab = 'about')}
+          class:active={activeTab === 'index'}
+          onclick={() => (activeTab = 'index')}
         >
-          <span class="tab-icon">{icons.about}</span>
-          About
+          <span class="tab-icon">📚</span>
+          Index
         </button>
         <button
           class="tab"
@@ -141,6 +176,14 @@
           <span class="tab-icon">{icons.scan}</span>
           Direct CID Scan
         </button>
+        <button
+          class="tab"
+          class:active={activeTab === 'about'}
+          onclick={() => (activeTab = 'about')}
+        >
+          <span class="tab-icon">{icons.about}</span>
+          About
+        </button>
       </div>
 
       <!-- Mobile Hamburger Menu -->
@@ -159,11 +202,11 @@
         <div class="mobile-menu">
           <button
             class="tab tab-mobile"
-            class:active={activeTab === 'about'}
-            onclick={() => { activeTab = 'about'; closeMobileMenu(); }}
+            class:active={activeTab === 'index'}
+            onclick={() => { activeTab = 'index'; closeMobileMenu(); }}
           >
-            <span class="tab-icon">{icons.about}</span>
-            About
+            <span class="tab-icon">📚</span>
+            Index
           </button>
           <button
             class="tab tab-mobile"
@@ -189,9 +232,74 @@
             <span class="tab-icon">{icons.scan}</span>
             Direct CID Scan
           </button>
+          <button
+            class="tab tab-mobile"
+            class:active={activeTab === 'about'}
+            onclick={() => { activeTab = 'about'; closeMobileMenu(); }}
+          >
+            <span class="tab-icon">{icons.about}</span>
+            About
+          </button>
         </div>
       {/if}
     </nav>
+
+    <!-- ── Tab: Index ───────────────────────── -->
+    {#if activeTab === 'index'}
+      <div class="step index-page">
+        <div class="index-hero">
+          <h2>Index</h2>
+          <p>
+            Overview of root CIDs and project names from the archive.
+          </p>
+        </div>
+
+        <section class="index-list">
+          {#each indexEntries as entry}
+            <article class="index-item">
+              <div class="index-item-main">
+                <h3>{entry.project}</h3>
+                <p>{entry.artists}</p>
+              </div>
+              <div class="index-item-meta">
+                <a href={`https://ipfs.io/ipfs/${entry.rootCid}`} target="_blank" rel="noopener noreferrer" class="index-cid-link">
+                  <code>{entry.rootCid}</code>
+                </a>
+                <span>{entry.platform}</span>
+              </div>
+            </article>
+          {/each}
+        </section>
+      </div>
+    {/if}
+
+    <!-- ── Tab: Pinned ───────────────────────── -->
+    {#if activeTab === 'pinned'}
+      <div class="step pinned-page">
+        <div class="pinned-hero">
+          <div>
+            <h2>Pinned gallery</h2>
+            <p>
+              Curated archive entries selected for stable reference and preservation.
+            </p>
+          </div>
+        </div>
+
+        <section class="pinned-gallery">
+          {#each pinnedProjects as project}
+            <article class="pinned-card">
+              <p class="eyebrow">Pinned archive</p>
+              <h3>{project.title}</h3>
+              <img src={project.image} alt={project.title + ' pinned archive preview'} class="project-image" />
+              <div class="button-group">
+                <a href={project.asyncUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary">AsyncV2</a>
+                <a href={project.ipfsUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary">IPFS</a>
+              </div>
+            </article>
+          {/each}
+        </section>
+      </div>
+    {/if}
 
     <!-- ── Tab: About ───────────────────────── -->
     {#if activeTab === 'about'}
@@ -232,28 +340,6 @@
             <li>Select items and add them to your archive</li>
             <li>Export your selection as manifest.json for the metadata and ready2pin.csv which you can upload to Pinata: it imports the files from the original location and stores them again -> creating redundancy.</li>
           </ul>
-        </section>
-      </div>
-    {/if}
-
-    <!-- ── Tab: Pinned ───────────────────────── -->
-    {#if activeTab === 'pinned'}
-      <div class="step pinned-page">
-        <div class="pinned-intro">
-          <h2>Archived & Pinned Projects</h2>
-          <p>
-            A curated gallery of cultural artifacts archived and preserved through ARTfilter. Each project represents a meaningful moment in digital culture.
-          </p>
-        </div>
-
-        <section class="pinned-card">
-          <p class="eyebrow">Pinned Project</p>
-          <h3>{pinnedProject.title}</h3>
-          <img src={pinnedProject.image} alt={pinnedProject.title + ' - Pinned Project'} class="project-image" />
-          <div class="button-group">
-            <a href={pinnedProject.asyncUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary">AsyncV2</a>
-            <a href={pinnedProject.ipfsUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary">IPFS</a>
-          </div>
         </section>
       </div>
     {/if}
@@ -310,14 +396,14 @@
   .header,
   .step,
   .tabs {
-    border: 2px solid var(--color-border);
-    box-shadow: var(--color-card-shadow);
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
   }
 
   .header,
   .step {
-    background: var(--color-bg-surface);
-    color: var(--color-fg);
+    background: var(--surface);
+    color: var(--text);
   }
 
   .header,
@@ -397,7 +483,7 @@
     width: min(320px, calc(100vw - 40px));
     padding: 18px 14px 14px;
     border-radius: 14px;
-    border: 2px solid var(--color-border);
+    border: 1px solid var(--border);
     background: #ffffff;
     box-shadow: 0 18px 40px rgba(15,23,42,0.18);
     z-index: 10000;
@@ -548,14 +634,14 @@
   }
 
   .step {
-    background: var(--color-bg-surface);
-    border: 2px solid var(--color-border);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 24px;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    box-shadow: var(--color-card-shadow);
+    box-shadow: var(--card-shadow);
   }
 
   @media (max-width: 500px) {
@@ -592,6 +678,73 @@
     gap: 20px;
   }
 
+  .index-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .index-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+  }
+
+  .index-item-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .index-item-main h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1b140e;
+  }
+
+  .index-item-main p {
+    margin: 0;
+    color: #4f463f;
+    line-height: 1.5;
+  }
+
+  .index-item-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .index-cid-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .index-cid-link:hover {
+    text-decoration: underline;
+  }
+
+  .index-item-meta code {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: #475569;
+    word-break: break-all;
+  }
+
+  .index-item-meta span {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+  }
+
   .nft-checker-page {
     padding: 22px;
   }
@@ -606,14 +759,42 @@
     margin: 0 auto;
   }
 
+  .index-page,
   .pinned-page {
     gap: 18px;
   }
 
-  .pinned-intro {
+  .pinned-gallery {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .index-hero,
+  .pinned-hero {
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .pinned-hero p {
+    margin: 0;
+    color: #4f463f;
+    line-height: 1.7;
+  }
+
+  .pinned-hero h2 {
+    margin: 0;
+    font-size: clamp(1.4rem, 3.6vw, 2rem);
+  }
+
+  .pinned-gallery .pinned-card {
+    padding: 20px;
+  }
+
+  .pinned-gallery .project-image {
+    margin: 12px 0;
+    max-height: 340px;
   }
 
   .pinned-card {
@@ -625,7 +806,7 @@
   }
 
   .pinned-card h3 {
-    margin: 0 0 12px;
+    margin: 0 0 10px;
   }
 
   .project-image {
@@ -647,14 +828,16 @@
   .button-group {
     display: flex;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 12px;
   }
 
+  .index-hero h2,
   .pinned-intro h2 {
     margin: 0;
     font-size: clamp(1.4rem, 3.6vw, 2rem);
   }
 
+  .index-hero p,
   .pinned-intro p {
     margin: 0;
     color: #4f463f;
@@ -664,6 +847,15 @@
   @media (max-width: 500px) {
     .button-group {
       flex-direction: column;
+    }
+
+    .index-item {
+      flex-direction: column;
+    }
+
+    .index-item-meta {
+      align-items: flex-start;
+      text-align: left;
     }
   }
 
@@ -689,6 +881,10 @@
   .about-hero {
     padding-bottom: 4px;
     border-bottom: 1px solid rgba(217,122,31,0.35);
+  }
+
+  .pinned-page {
+    gap: 16px;
   }
 
   .about-hero,
@@ -803,10 +999,10 @@
   .tabs {
     display: flex;
     gap: 4px;
-    border: 2px solid var(--color-border);
+    border: 1px solid var(--border);
     padding: 8px;
-    background: var(--color-bg-surface);
-    box-shadow: var(--color-card-shadow);
+    background: var(--surface);
+    box-shadow: var(--card-shadow);
     position: relative;
     align-items: center;
     border-radius: var(--radius-md);
@@ -822,9 +1018,8 @@
 
   .tabs-desktop > .tab,
   .mobile-menu > .tab {
-    border: 2px solid #c7a283 !important;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
-    background: #fffdf7;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-muted);
   }
 
   .mobile-menu-btn {
@@ -851,8 +1046,8 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--color-bg-surface);
-    border: 2px solid var(--color-border);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-top: none;
     border-radius: 0 0 var(--radius-md) var(--radius-md);
     display: flex;
@@ -913,12 +1108,12 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    border: 2px solid #c7a283 !important;
-    background: #fffdf7;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-muted);
     cursor: pointer;
     font-size: 0.88rem;
-    font-weight: 700;
-    color: #6a5747;
+    font-weight: 500;
+    color: var(--text-muted);
     border-radius: 12px;
     transition: transform 0.12s, border-color 0.15s, background 0.15s, color 0.15s;
     white-space: nowrap;
@@ -935,16 +1130,17 @@
   }
 
   .tab:hover {
-    color: #1b140e;
+    color: var(--text);
     transform: translateY(-1px);
-    background: #e3f6c8;
-    border-color: #c7a283 !important;
+    background: var(--surface-strong);
+    border-color: var(--border-strong);
   }
 
   .tab.active {
-    color: #683a51e5;
-    border-color: #c7a283 !important;
-    background: #d9f4ff;
+    color: var(--text);
+    border-color: var(--accent);
+    background: var(--surface-strong);
+    font-weight: 700;
   }
 
   @media (max-width: 768px) {

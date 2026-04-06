@@ -12,6 +12,7 @@
   let jobId = ''
   let progress = { current: 0, total: 0 }
   let exporting = ''
+  const showCarExport = false
 
   /** @type {object | null} */
   let result = null
@@ -248,9 +249,11 @@
         <button class="btn btn-secondary" onclick={() => download('csv')} disabled={!!exporting}>
           {exporting === 'csv' ? 'Exporting…' : '📋 ready2pin'}
         </button>
-        <button class="btn btn-primary" onclick={() => download('car')} disabled={!!exporting}>
-          {exporting === 'car' ? 'Exporting…' : '🗂️ CAR'}
-        </button>
+        {#if showCarExport}
+          <button class="btn btn-primary" onclick={() => download('car')} disabled={!!exporting}>
+            {exporting === 'car' ? 'Exporting…' : '🗂️ CAR'}
+          </button>
+        {/if}
       </div>
     </div>
   {/if}
