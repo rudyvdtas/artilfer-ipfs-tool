@@ -92,7 +92,10 @@ export async function scan(input, onProgress) {
     const name = path ? path.split('/').filter(Boolean).pop() || cid : cid
     const kind = guessKind(fetched.contentType, fetched.text, fetched.json)
     const ext = guessExtension(fetched.contentType, kind, name)
-    const safeName = safeFilename(`${name}${ext}`)
+
+    const hasRealExtension = /\.[a-z0-9]{1,8}$/i.test(name)
+    const displayName = hasRealExtension ? name : `${name}${ext}`
+    const safeName = safeFilename(displayName)
 
     /** @type {ScanNode} */
     const node = {

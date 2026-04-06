@@ -557,10 +557,12 @@ export function safeFilename(value) {
 export function guessKind(contentType, text, json) {
   if (json) return 'json'
   const type = String(contentType || '').toLowerCase()
-  if (type.includes('html')) return 'html'
-  if (type.startsWith('text/') || type.includes('json')) return 'text'
   const trimmed = String(text || '').trim()
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return 'json'
+
+  if (type.includes('html') || trimmed.startsWith('<')) return 'html'
+  if (type.startsWith('image/') || type.startsWith('video/') || type.startsWith('audio/') || type.startsWith('model/')) return 'binary'
+  if (type.includes('json') || trimmed.startsWith('{') || trimmed.startsWith('[')) return 'json'
+  if (type.startsWith('text/')) return 'text'
   if (trimmed.length) return 'text'
   return 'binary'
 }
@@ -570,11 +572,20 @@ export function guessExtension(contentType, kind, nameHint) {
   const type = String(contentType || '').toLowerCase()
   if (kind === 'json') return '.json'
   if (kind === 'html') return '.html'
-  if (kind === 'text') return '.txt'
   if (type === 'image/png') return '.png'
   if (type === 'image/jpeg' || type === 'image/jpg') return '.jpg'
   if (type === 'image/gif') return '.gif'
   if (type === 'image/webp') return '.webp'
   if (type === 'image/svg+xml') return '.svg'
+  if (type === 'video/mp4') return '.mp4'
+  if (type === 'video/webm') return '.webm'
+  if (type === 'video/quicktime') return '.mov'
+  if (type === 'audio/mpeg') return '.mp3'
+  if (type === 'audio/wav') return '.wav'
+  if (type === 'audio/ogg') return '.ogg'
+  if (type === 'audio/flac') return '.flac'
+  if (type === 'model/gltf+json') return '.gltf'
+  if (type === 'model/gltf-binary') return '.glb'
+  if (kind === 'text') return '.txt'
   return '.bin'
 }

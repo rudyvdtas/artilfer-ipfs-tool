@@ -119,31 +119,27 @@ function resolveNodeName(node) {
   const baseName = (node.name || node.cid.slice(0, 16))
     .replace(/\.(json|txt|bin|html|htm)$/i, '')
     .toLowerCase()
-  return ext ? `${baseName}${ext}` : baseName
+
+  const hasRealExtension = /\.[a-z0-9]{1,8}$/i.test(baseName)
+  return hasRealExtension || !ext ? baseName : `${baseName}${ext}`
 }
 
 /**
- * ✅ Build a compact mediaUris object from a scan result.
- * Extracts artifact, display, thumbnail and animation URIs for quick access.
+ * Build a compact mediaUris object from a scan result.
+ * Reads from scan.metadata where batch-coordinator merges on-chain fields.
+ * rawMetadata is deliberately not stored to disk (GDPR Art. 5(1)(e)).
  *
  * @param {object} r - A successful NFT scan result
  * @returns {{ artifact: string|null, display: string|null, thumbnail: string|null, animation: string|null }}
  */
 function buildMediaUris(r) {
   const meta = r.scan?.metadata || {}
-  const rawMeta = r.rawMetadata || {}   // available if stored by batch-coordinator
-
-  // ✅ From extracted metadata (resolver.js extractMetadata)
-  const display    = rawMeta.displayUri   || rawMeta.display_uri    || meta.image      || null
-  const artifact   = rawMeta.artifactUri  || rawMeta.artifact_uri   || null
-  const thumbnail  = rawMeta.thumbnailUri || rawMeta.thumbnail_uri  || meta.thumbnail  || null
-  const animation  = rawMeta.animation_url|| rawMeta.animationUrl   || null
 
   return {
-    artifact:  artifact  || null,
-    display:   display   || null,
-    thumbnail: thumbnail || null,
-    animation: animation || null,
+    artifact:  meta.artifactUri  || null,
+    display:   meta.displayUri   || meta.image     || null,
+    thumbnail: meta.thumbnailUri || meta.thumbnail || null,
+    animation: meta.animation    || null,
   }
 }
 

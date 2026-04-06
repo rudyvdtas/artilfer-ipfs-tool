@@ -197,6 +197,10 @@
           {/if}
         </div>
 
+        <div class="batch-mobile-meta">
+          <span class="batch-mobile-line">{nftRange(batch)} · {statusLabel(batch)}{#if isDone && batch.summary} · {batch.summary.successful ?? 0} ok{/if}</span>
+        </div>
+
         <!-- Rechter kolom: directe export-knoppen per voltooide batch -->
         {#if isDone}
           <div class="batch-actions">
@@ -443,6 +447,16 @@
     flex-shrink: 0;
   }
 
+  .batch-mobile-meta {
+    display: none;
+  }
+
+  .batch-mobile-line {
+    font-size: 0.72rem;
+    color: #64748b;
+    line-height: 1.35;
+  }
+
   .batch-status-label {
     font-size: 0.76rem;
     font-weight: 600;
@@ -615,6 +629,10 @@
 
   @media (max-width: 480px) {
     .batch-middle { display: none; }
+    .batch-mobile-meta { display: block; }
+    .batch-row { align-items: flex-start; }
+    .batch-left { align-items: flex-start; }
+    .batch-actions { margin-left: auto; }
     .export-row { flex-direction: column; }
   }
 </style>

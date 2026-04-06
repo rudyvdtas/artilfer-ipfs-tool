@@ -172,6 +172,16 @@ export async function scanNFTBatch(jobId, nfts) {
         }
       }
 
+      // Merge on-chain media URIs into scan.metadata so export-builder can
+      // read them from there. rawMetadata must NOT be persisted to disk
+      // (GDPR Art. 5(1)(e) — storage limitation).
+      const onChain = nft.metadata || {}
+      const sm = scanResult.metadata
+      if (!sm.artifactUri)  sm.artifactUri  = onChain.artifactUri  || onChain.artifact_uri  || null
+      if (!sm.displayUri)   sm.displayUri   = onChain.displayUri   || onChain.display_uri   || null
+      if (!sm.thumbnailUri) sm.thumbnailUri = onChain.thumbnailUri || onChain.thumbnail_uri || null
+      if (!sm.animation)    sm.animation    = onChain.animation_url|| onChain.animationUrl  || null
+
       results.push({
         nftId: nft.id,
         name: nft.name,
@@ -179,8 +189,6 @@ export async function scanNFTBatch(jobId, nfts) {
         contract: nft.contract,
         tokenId: nft.tokenId,
         metadataCID: metadataCID || null,
-        // ✅ Preserve raw on-chain metadata for mediaUris extraction in export-builder
-        rawMetadata: nft.metadata || null,
         scan: scanResult,
         status: 'success',
       })
@@ -250,10 +258,16 @@ function serializeResults(results) {
       }
     }
 
+    // rawMetadata is intentionally NOT written to disk (GDPR Art. 5(1)(e)).
+    // Media URIs were already merged into scan.metadata by scanNFTBatch().
     return {
-      ...r,
-      // ✅ rawMetadata preserved for mediaUris in manifest export
-      rawMetadata: r.rawMetadata || null,
+      nftId: r.nftId,
+      name: r.name,
+      chain: r.chain,
+      contract: r.contract,
+      tokenId: r.tokenId,
+      metadataCID: r.metadataCID,
+      status: r.status,
       scan: {
         rootCid: r.scan.rootCid,
         nodes,

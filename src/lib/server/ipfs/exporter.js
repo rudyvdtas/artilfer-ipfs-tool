@@ -84,7 +84,9 @@ function resolveNodeName(node) {
   const baseName = stripIpfsPrefix(node.name || '')
     .replace(/\.(json|txt|bin|html|htm)$/i, '')
     .toLowerCase()
-  return ext ? `${baseName}${ext}` : baseName
+
+  const hasRealExtension = /\.[a-z0-9]{1,8}$/i.test(baseName)
+  return hasRealExtension || !ext ? baseName : `${baseName}${ext}`
 }
 
 function normalizeCid(value) {

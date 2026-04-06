@@ -6,7 +6,7 @@
 /** @type {Map<string, {result: import('./scanner.js').ScanResult, ts: number}>} */
 export const scanResultCache = new Map()
 
-const TTL_MS = 24 * 60 * 60 * 1000 // 24h
+const TTL_MS = 60 * 60 * 1000 // 1 hour — GDPR storage limitation (Art. 5(1)(e))
 
 export function cacheSet(jobId, result) {
   scanResultCache.set(jobId, { result, ts: Date.now() })

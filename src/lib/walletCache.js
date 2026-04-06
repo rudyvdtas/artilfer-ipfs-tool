@@ -12,7 +12,8 @@
 
 const INDEX_KEY = 'artfilter_wallet_index'
 const MAX_NFTS_STORED = 2000   // veiligheidsgrens voor localStorage
-const SESSION_VERSION = 2      // verhoog bij breaking changes in schema
+const SESSION_VERSION = 3      // verhoogd: voegt expiresAt toe (GDPR Art. 5(1)(e))
+const SESSION_TTL_MS  = 7 * 24 * 60 * 60 * 1000 // 7 dagen
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -142,6 +143,7 @@ function removeFromIndex(key) {
 export function saveWalletSession(address, chain, displayName, nfts, totalCount) {
   const key = walletKey(chain, address)
   const existing = readLS(key)
+  const now = Date.now()
 
   const session = {
     version: SESSION_VERSION,
@@ -149,7 +151,8 @@ export function saveWalletSession(address, chain, displayName, nfts, totalCount)
     chain,
     displayName: displayName ?? null,
     totalCount,
-    savedAt: Date.now(),
+    savedAt: now,
+    expiresAt: now + SESSION_TTL_MS,
     nfts: stripNFTsForStorage(nfts),
     // Bewaar bestaande batch-resultaten als die er al waren
     batches: existing?.version === SESSION_VERSION ? (existing.batches ?? []) : [],
@@ -171,6 +174,14 @@ export function loadWalletSession(address, chain) {
   const key = walletKey(chain, address)
   const session = readLS(key)
   if (!session || session.version !== SESSION_VERSION) return null
+
+  // Auto-expire: verwijder sessies die de TTL hebben overschreden
+  // (GDPR Art. 5(1)(e) — storage limitation)
+  if (session.expiresAt && Date.now() > session.expiresAt) {
+    clearWalletSession(address, chain)
+    return null
+  }
+
   return session
 }
 

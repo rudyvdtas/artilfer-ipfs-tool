@@ -48,7 +48,13 @@ export async function GET({ params }) {
         const nodes = {}
         for (const [key, node] of Object.entries(r.scan?.nodes || {})) {
           if (!node.cid || node.error) continue
-          nodes[key] = { cid: node.cid, name: node.name, contentType: node.contentType, kind: node.kind }
+          nodes[key] = {
+            cid: node.cid,
+            path: node.path,
+            name: node.name,
+            contentType: node.contentType,
+            kind: node.kind,
+          }
         }
         return {
           nftId: r.nftId,

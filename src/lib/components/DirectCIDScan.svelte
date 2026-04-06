@@ -314,7 +314,7 @@
     background: rgba(255, 255, 255, 0.85);
     border: 2px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 24px;
+    padding: 14px;
     backdrop-filter: blur(12px);
     box-shadow: var(--card-shadow);
     display: flex;
@@ -502,6 +502,12 @@
   .btn-ghost:hover:not(:disabled) { color: #1b140e; transform: none; }
 
   /* ── Responsive ──────────────────────────────– */
+
+  @media (max-width: 768px) {
+    .card {
+      padding: 16px;
+    }
+  }
 
   @media (max-width: 480px) {
     .input-row { flex-direction: column; }

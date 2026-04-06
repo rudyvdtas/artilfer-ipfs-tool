@@ -117,12 +117,29 @@
     font-family: var(--font-mono, monospace);
     font-size: 0.82rem;
     line-height: 1.6;
-    max-height: 400px;
+    max-height: 320px;
     overflow-y: auto;
     border: 1px solid var(--color-border, #e2e8f0);
     border-radius: var(--radius-sm, 8px);
     padding: 0.5rem;
     background: var(--color-bg-soft, #f8fafc);
+  }
+
+  @media (max-width: 480px) {
+    .merkle-tree {
+      max-height: none;
+      overflow-y: visible;
+      font-size: 0.75rem;
+    }
+
+    .tree-indent {
+      gap: 0.25rem;
+    }
+
+    .tree-cid,
+    .tree-size {
+      font-size: 0.68rem;
+    }
   }
 
   .tree-row {

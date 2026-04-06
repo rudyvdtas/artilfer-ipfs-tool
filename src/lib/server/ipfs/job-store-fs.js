@@ -10,7 +10,7 @@ import path from 'node:path'
 
 const STORAGE_DIR = process.env.JOB_STORAGE_DIR || '/tmp/nft-archive'
 const JOBS_DIR = path.join(STORAGE_DIR, 'jobs')
-const TTL_MS = 24 * 60 * 60 * 1000
+const TTL_MS = 60 * 60 * 1000 // 1 hour — GDPR storage limitation (Art. 5(1)(e))
 
 // ✅ Simple lock mechanism to prevent concurrent writes
 const jobLocks = new Map()
@@ -38,11 +38,13 @@ function jobPath(jobId) {
 
 export async function createJob(jobId) {
   await ensureDir()
+  const now = Date.now()
   const job = {
     jobId,
     status: 'queued',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: now,
+    updatedAt: now,
+    expiresAt: now + TTL_MS,
     progress: { current: 0, total: null },
     error: null,
     result: null,
@@ -72,6 +74,8 @@ export async function updateJob(jobId, patch) {
       ...patch,
       progress: { ...current.progress, ...(patch.progress || {}) },
       updatedAt: Date.now(),
+      // Refresh the expiry on every write so active jobs don't expire mid-scan
+      expiresAt: Date.now() + TTL_MS,
     }
     await fs.writeFile(jobPath(jobId), JSON.stringify(updated, null, 2), 'utf8')
     return updated
@@ -99,10 +103,14 @@ export async function cleanupOldJobs() {
       if (!file.endsWith('.json')) continue
       const filePath = path.join(JOBS_DIR, file)
       try {
-        const stat = await fs.stat(filePath)
-        if (now - stat.mtimeMs > TTL_MS) {
-          await fs.unlink(filePath)
-        }
+        // Prefer the explicit expiresAt field; fall back to mtime for legacy files
+        // that were written before this field existed.
+        const raw = await fs.readFile(filePath, 'utf8')
+        const job = JSON.parse(raw)
+        const expired = job.expiresAt
+          ? now > job.expiresAt
+          : now - (await fs.stat(filePath)).mtimeMs > TTL_MS
+        if (expired) await fs.unlink(filePath)
       } catch {}
     }
   } catch {}

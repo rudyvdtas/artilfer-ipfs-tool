@@ -31,11 +31,6 @@ export async function GET({ url }) {
 
   try {
     let rawNFTs = []
-    let debugInfo = {
-      chain,
-      ALCHEMY_KEY_SET: !!env.ALCHEMY_KEY,
-      ALCHEMY_API_KEY_SET: !!env.ALCHEMY_API_KEY,
-    }
 
     if (chain === 'ethereum') {
       rawNFTs = await fetchEthereumNFTs(address)
@@ -46,22 +41,29 @@ export async function GET({ url }) {
     const enriched = enrichWithIPFSInfo(rawNFTs)
     const ipfsNFTs = filterIPFSNFTs(enriched)
 
-    // Zorg dat alle NFTs zichtbaar blijven in de UI.
-    // De frontend toont nu het totaal en markeert per NFT of er IPFS-data is.
+    const isDev = process.env.NODE_ENV !== 'production'
+
     return json({
       address,
       chain,
       totalCount: rawNFTs.length,
       ipfsCount: ipfsNFTs.length,
       nfts: enriched,
-      debugLog: rawNFTs.debugLog || [],
-      deployDebug: {
-        ...debugInfo,
-        alchemyDebug: rawNFTs.alchemyDebug || null,
-      },
+      // debugLog and deployDebug contain internal infra details and are
+      // only included in development builds (GDPR Art. 5(1)(b) — purpose limitation).
+      ...(isDev && {
+        debugLog: rawNFTs.debugLog || [],
+        deployDebug: {
+          chain,
+          ALCHEMY_KEY_SET: !!env.ALCHEMY_KEY,
+          ALCHEMY_API_KEY_SET: !!env.ALCHEMY_API_KEY,
+          alchemyDebug: rawNFTs.alchemyDebug || null,
+        },
+      }),
     })
   } catch (err) {
-    console.error('[NFT Fetch]', err)
+    // Avoid logging the wallet address — log only the error type
+    console.error('[NFT Fetch] error:', err?.constructor?.name, err?.message)
     return json({ error: err.message }, { status: 500 })
   }
 }

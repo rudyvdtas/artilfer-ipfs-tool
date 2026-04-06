@@ -32,6 +32,14 @@
     pinned: '📌',
   }
 
+  const navItems = [
+    { key: 'index', label: 'Index', icon: '📚' },
+    { key: 'pinned', label: 'Pinned', icon: icons.pinned },
+    { key: 'nft-checker', label: 'NFT Wallet Checker', icon: icons.nft },
+    { key: 'scanner', label: 'Direct CID Scan', icon: icons.scan },
+    { key: 'about', label: 'About', icon: icons.about },
+  ]
+
   const socialLinks = [
     {
       href: 'https://x.com/artfilterio',
@@ -48,15 +56,21 @@
   const pinnedProjects = [
     {
       title: 'First Supper',
-      image: '/first-supper.jpg',
-      asyncUrl: 'https://www.async.art/v2/0?referrer=masters',
+      thumb: '/thumbs/first-supper-small.jpg',
       ipfsUrl: 'https://ipfs.io/ipfs/bafybeigfi7lhhgtmwavftjr4wkz47pljq5xk5wsbxvjrlycjxbzdwgesxm/',
+      links: [
+        { href: 'https://ipfs.io/ipfs/bafybeigfi7lhhgtmwavftjr4wkz47pljq5xk5wsbxvjrlycjxbzdwgesxm/', label: 'IPFS' },
+        { href: 'https://www.async.art/v2/0?referrer=masters', label: 'ASYNC V2' },
+      ],
     },
     {
       title: 'The Cunégonde Dilemma',
-      image: '/thumbs/the-cunegonde-dilemma.jpg',
-      asyncUrl: 'https://www.async.art/v2/0?referrer=masters',
+      thumb: '/thumbs/the-cunegonde-dilemma-thumb.jpg',
       ipfsUrl: 'https://ipfs.io/ipfs/QmUVaaE39kcdnU5G91xFQEyfeMcW8qYSjLyXoiru14q6mH',
+      links: [
+        { href: 'https://ipfs.io/ipfs/QmUVaaE39kcdnU5G91xFQEyfeMcW8qYSjLyXoiru14q6mH', label: 'IPFS' },
+        { href: 'https://www.async.art/v2/3?referrer=masters', label: 'ASYNC V2' },
+      ],
     },
   ]
 
@@ -66,24 +80,38 @@
       project: 'Looking For Satoshi',
       artists: 'Rutger van der Tas',
       platform: 'ASYNC.ART',
+      thumb: '/thumbs/looking-for-satoshi-thumb.jpg',
+      ipfsUrl: 'https://ipfs.io/ipfs/Qmd4GTGvQw2HvfYactmEqw1rdiYeP2Ht3CitZeh1iXFnyw',
+      openSeaUrl: 'https://opensea.io/collection/looking-for-satoshi',
     },
     {
       rootCid: 'QmQEQYguTJ4ApkCJ8J5wSMGFfgZLP5Xz4w7yGArFdHkVjr',
       project: 'GRIFTERS',
       artists: 'XCOPY',
       platform: 'ASYNC.ART',
+      thumb: '/thumbs/grifters-thumb.jpg',
+      ipfsUrl: 'https://ipfs.io/ipfs/QmQEQYguTJ4ApkCJ8J5wSMGFfgZLP5Xz4w7yGArFdHkVjr',
+      openSeaUrl: 'https://opensea.io/collection/grifters-by-xcopy',
     },
     {
       rootCid: 'Qmaje8byBxmFTHDjCvDYLy1NPZkUX1Etx1agDw5HxNqtef',
       project: 'First Supper',
       artists: 'Shortcut, Josie Bellini, Sparrow (Digitial), Mlibty, Vans Design, Alotta Money, Twisted Vacancy, Coldie, Hackatao, XCOPY, Matt Kane, Rutger van der Tas, and DIGITAL.',
       platform: 'ASYNC.ART',
+      thumb: '/thumbs/first-supper-small.jpg',
+      ipfsUrl: 'https://ipfs.io/ipfs/Qmaje8byBxmFTHDjCvDYLy1NPZkUX1Etx1agDw5HxNqtef',
+      asyncUrl: 'https://www.async.art/v2/0?referrer=masters',
+      openSeaUrl: 'https://opensea.io/item/ethereum/0xb6dae651468e9593e4581705a09c10a76ac1e0c8/0',
     },
     {
       rootCid: 'QmUVaaE39kcdnU5G91xFQEyfeMcW8qYSjLyXoiru14q6mH',
       project: 'The Cunégonde Dilemma',
       artists: 'Alotta Money',
       platform: 'ASYNC.ART',
+      thumb: '/thumbs/the-cunegonde-dilemma-thumb.jpg',
+      ipfsUrl: 'https://ipfs.io/ipfs/QmUVaaE39kcdnU5G91xFQEyfeMcW8qYSjLyXoiru14q6mH',
+      asyncUrl: 'https://www.async.art/v2/3?referrer=masters',
+      openSeaUrl: 'https://opensea.io/item/ethereum/0xb6dae651468e9593e4581705a09c10a76ac1e0c8/23',
     },
   ]
 
@@ -108,7 +136,7 @@
           <img src="/icons/favicon.svg" alt="" aria-hidden="true" class="brand-logo brand-logo-glow" />
           <span class="brand-title">ARTfilter</span>
         </div>
-        <h1>Preservation starts with taking responsibility.</h1>
+        <h1 class="header-tagline">Preservation starts with taking responsibility.</h1>
       </div>
 
       <div class="donate-header-wrap">
@@ -142,106 +170,21 @@
 
     <!-- ── Tabs ───────────────────────────────────── -->
     <nav class="tabs" aria-label="Navigatie">
-      <!-- Desktop Tabs -->
-      <div class="tabs-desktop">
-        <button
-          class="tab"
-          class:active={activeTab === 'index'}
-          onclick={() => (activeTab = 'index')}
-        >
-          <span class="tab-icon">📚</span>
-          Index
+      {#each navItems as item}
+        <button class="tab" class:active={activeTab === item.key} onclick={() => { activeTab = item.key; closeMobileMenu(); }}>
+          <span class="tab-icon">{item.icon}</span>
+          <span>{item.label}</span>
         </button>
-        <button
-          class="tab"
-          class:active={activeTab === 'pinned'}
-          onclick={() => (activeTab = 'pinned')}
-        >
-          <span class="tab-icon">{icons.pinned}</span>
-          Pinned
-        </button>
-        <button
-          class="tab"
-          class:active={activeTab === 'nft-checker'}
-          onclick={() => (activeTab = 'nft-checker')}
-        >
-          <span class="tab-icon">{icons.nft}</span>
-          NFT Wallet Checker
-        </button>
-        <button
-          class="tab"
-          class:active={activeTab === 'scanner'}
-          onclick={() => (activeTab = 'scanner')}
-        >
-          <span class="tab-icon">{icons.scan}</span>
-          Direct CID Scan
-        </button>
-        <button
-          class="tab"
-          class:active={activeTab === 'about'}
-          onclick={() => (activeTab = 'about')}
-        >
-          <span class="tab-icon">{icons.about}</span>
-          About
-        </button>
-      </div>
+      {/each}
+    </nav>
 
-      <!-- Mobile Hamburger Menu -->
-      <button 
-        class="mobile-menu-btn" 
-        aria-label="Menu" 
-        aria-expanded={mobileMenuOpen}
-        onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-      >
-        <span class="hamburger-icon"></span>
-        <span class="hamburger-icon"></span>
-        <span class="hamburger-icon"></span>
-      </button>
-
-      {#if mobileMenuOpen}
-        <div class="mobile-menu">
-          <button
-            class="tab tab-mobile"
-            class:active={activeTab === 'index'}
-            onclick={() => { activeTab = 'index'; closeMobileMenu(); }}
-          >
-            <span class="tab-icon">📚</span>
-            Index
-          </button>
-          <button
-            class="tab tab-mobile"
-            class:active={activeTab === 'pinned'}
-            onclick={() => { activeTab = 'pinned'; closeMobileMenu(); }}
-          >
-            <span class="tab-icon">{icons.pinned}</span>
-            Pinned
-          </button>
-          <button
-            class="tab tab-mobile"
-            class:active={activeTab === 'nft-checker'}
-            onclick={() => { activeTab = 'nft-checker'; closeMobileMenu(); }}
-          >
-            <span class="tab-icon">{icons.nft}</span>
-            NFT Wallet Checker
-          </button>
-          <button
-            class="tab tab-mobile"
-            class:active={activeTab === 'scanner'}
-            onclick={() => { activeTab = 'scanner'; closeMobileMenu(); }}
-          >
-            <span class="tab-icon">{icons.scan}</span>
-            Direct CID Scan
-          </button>
-          <button
-            class="tab tab-mobile"
-            class:active={activeTab === 'about'}
-            onclick={() => { activeTab = 'about'; closeMobileMenu(); }}
-          >
-            <span class="tab-icon">{icons.about}</span>
-            About
-          </button>
-        </div>
-      {/if}
+    <nav class="mobile-tabbar" aria-label="Mobiele navigatie">
+      {#each navItems as item}
+        <button class="mobile-tabbar-item" class:active={activeTab === item.key} onclick={() => { activeTab = item.key; }}>
+          <span class="tab-icon">{item.icon}</span>
+          <span>{item.label}</span>
+        </button>
+      {/each}
     </nav>
 
     <!-- ── Tab: Index ───────────────────────── -->
@@ -250,22 +193,26 @@
         <div class="index-hero">
           <h2>Index</h2>
           <p>
-            Overview of root CIDs and project names from the archive.
+            Use this index to look the ROOTCIDS which makes it easy to archive the pieces by yourself. Contact me for request or questions.
           </p>
         </div>
 
-        <section class="index-list">
+        <section class="index-grid">
           {#each indexEntries as entry}
-            <article class="index-item">
-              <div class="index-item-main">
+            <article class="index-tile">
+              <a href={`https://ipfs.io/ipfs/${entry.rootCid}`} target="_blank" rel="noopener noreferrer" class="index-thumb-link" aria-label={entry.project + ' IPFS'}>
+                <img src={entry.thumb} alt={entry.project + ' index thumb'} class="index-thumb" />
+              </a>
+              <div class="index-tile-meta">
                 <h3>{entry.project}</h3>
-                <p>{entry.artists}</p>
-              </div>
-              <div class="index-item-meta">
-                <a href={`https://ipfs.io/ipfs/${entry.rootCid}`} target="_blank" rel="noopener noreferrer" class="index-cid-link">
-                  <code>{entry.rootCid}</code>
-                </a>
                 <span>{entry.platform}</span>
+              </div>
+              <div class="index-links">
+                <a href={entry.ipfsUrl} target="_blank" rel="noopener noreferrer">IPFS</a>
+                {#if entry.asyncUrl}
+                  <a href={entry.asyncUrl} target="_blank" rel="noopener noreferrer">ASYNC V2</a>
+                {/if}
+                <a href={entry.openSeaUrl} target="_blank" rel="noopener noreferrer">OpenSea</a>
               </div>
             </article>
           {/each}
@@ -278,22 +225,27 @@
       <div class="step pinned-page">
         <div class="pinned-hero">
           <div>
-            <h2>Pinned gallery</h2>
+            <h2>Pinned by Artfilter</h2>
             <p>
-              Curated archive entries selected for stable reference and preservation.
+              Curated archive entries selected for stable reference and preservation. -> contact me for requests or questions.
             </p>
           </div>
         </div>
 
         <section class="pinned-gallery">
           {#each pinnedProjects as project}
-            <article class="pinned-card">
-              <p class="eyebrow">Pinned archive</p>
-              <h3>{project.title}</h3>
-              <img src={project.image} alt={project.title + ' pinned archive preview'} class="project-image" />
-              <div class="button-group">
-                <a href={project.asyncUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary">AsyncV2</a>
-                <a href={project.ipfsUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary">IPFS</a>
+            <article class="index-tile pinned-tile">
+              <a href={project.ipfsUrl} target="_blank" rel="noopener noreferrer" class="index-thumb-link" aria-label={project.title + ' IPFS'}>
+                <img src={project.thumb} alt={project.title + ' pinned archive thumb'} class="index-thumb" />
+              </a>
+              <div class="index-tile-meta">
+                <h3>{project.title}</h3>
+                <span>PINNED</span>
+              </div>
+              <div class="index-links">
+                {#each project.links as link}
+                  <a href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>
+                {/each}
               </div>
             </article>
           {/each}
@@ -380,13 +332,19 @@
 <style>
   /* ─── Layout ─────────────────────────────────────── */
 
+  :global(:root) {
+    --space-card-mobile: 14px;
+    --space-card-tablet: 20px;
+    --space-card-desktop: 28px;
+  }
+
   .page {
     min-height: 100vh;
-    padding: 24px 20px 60px;
+    padding: 24px 20px 88px;
   }
 
   .shell {
-    max-width: 760px;
+    max-width: 100%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -403,7 +361,7 @@
   .header,
   .step {
     background: var(--surface);
-    color: var(--text);
+    color: color-mix(in srgb, var(--text) 80%, transparent);
   }
 
   .header,
@@ -415,8 +373,7 @@
   /* ─── Header ─────────────────────────────────────── */
 
   .header {
-    padding-top: 24px;
-    padding: 22px 22px 18px;
+    padding: 18px 20px 14px;
     display: flex;
     justify-content: space-between;
     gap: 12px;
@@ -425,10 +382,20 @@
     isolation: isolate;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
     .header {
-      padding: 16px 14px 12px;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 14px 12px 10px;
       gap: 8px;
+    }
+
+    .donate-header-wrap {
+      align-self: flex-end;
+    }
+
+    h1 {
+      font-size: 1.15rem;
     }
   }
 
@@ -560,9 +527,9 @@
   }
 
   .header .brand-logo {
-    width: 28px;
-    height: 28px;
-    margin-top: 4px;
+    width: 32px;
+    height: 32px;
+    margin-top: 2px;
   }
 
   .brand-logo {
@@ -583,7 +550,7 @@
   .brand-title {
     font-size: 0.33em;
     text-transform: none;
-    font-weight: 300;
+    font-weight: 250;
     letter-spacing: 0.02em;
     line-height: 0.95;
     color: #1b140e;
@@ -595,7 +562,7 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #8a4f14;
+    color: color-mix(in srgb, #8a4f14 80%, transparent);
     margin-bottom: 6px;
   }
 
@@ -603,10 +570,18 @@
   .about-hero .brand-title {
     font-size: clamp(1.4rem, 4vw, 2rem);
     line-height: 1.05;
-    font-weight: 500;
+    font-weight: 450;
     letter-spacing: 0.04em;
-    color: #1b140e;
+    color: color-mix(in srgb, #1b140e 80%, transparent);
     text-transform: none;
+  }
+
+  .header-tagline {
+    font-family: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, #1b140e 80%, transparent);
   }
 
   h1 {
@@ -614,7 +589,7 @@
     font-weight: 300;
     margin: 0 0 8px;
     line-height: 1.1;
-    color: #1b140e;
+    color: color-mix(in srgb, #1b140e 80%, transparent);
   }
 
   @media (max-width: 500px) {
@@ -637,17 +612,22 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 24px;
+    padding: var(--space-card-mobile);
     display: flex;
     flex-direction: column;
     gap: 16px;
     box-shadow: var(--card-shadow);
   }
 
-  @media (max-width: 500px) {
+  @media (min-width: 480px) {
     .step {
-      padding: 16px;
-      gap: 12px;
+      padding: var(--space-card-tablet);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .step {
+      padding: var(--space-card-desktop);
     }
   }
 
@@ -678,71 +658,84 @@
     gap: 20px;
   }
 
-  .index-list {
+  .index-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+  }
+
+  .index-tile {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+    color: inherit;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 20px;
+    padding: 14px;
+    box-shadow: 0 8px 32px rgba(15,23,42,0.06);
   }
 
-  .index-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 16px 18px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(148, 163, 184, 0.18);
+  .index-thumb-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
   }
 
-  .index-item-main {
-    min-width: 0;
+  .index-thumb {
+    width: 200px;
+    height: 200px;
+    max-width: 100%;
+    border-radius: 12px;
+    object-fit: cover;
+    display: block;
+    background: rgba(148,163,184,0.12);
+  }
+
+  .index-tile-meta {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
 
-  .index-item-main h3 {
+  .index-tile-meta h3 {
     margin: 0;
     font-size: 1rem;
     color: #1b140e;
   }
 
-  .index-item-main p {
-    margin: 0;
-    color: #4f463f;
-    line-height: 1.5;
-  }
-
-  .index-item-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  .index-cid-link {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .index-cid-link:hover {
-    text-decoration: underline;
-  }
-
-  .index-item-meta code {
-    font-family: var(--mono);
-    font-size: 0.76rem;
-    color: #475569;
-    word-break: break-all;
-  }
-
-  .index-item-meta span {
+  .index-tile-meta span {
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #94a3b8;
+  }
+
+  .index-links {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .index-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-decoration: none;
+    background: rgba(226,232,240,0.9);
+    border-radius: 999px;
+    padding: 5px 8px;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    transition: background 0.15s ease, transform 0.12s ease;
+  }
+
+  .index-links a:hover {
+    background: rgba(203,213,225,0.95);
+    transform: translateY(-1px);
   }
 
   .nft-checker-page {
@@ -754,7 +747,6 @@
   }
 
   .checker-shell {
-    max-width: 760px;
     width: 100%;
     margin: 0 auto;
   }
@@ -766,8 +758,12 @@
 
   .pinned-gallery {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 14px;
+  }
+
+  .pinned-tile {
+    align-items: stretch;
   }
 
   .index-hero,
@@ -792,21 +788,13 @@
     padding: 20px;
   }
 
-  .pinned-gallery .project-image {
-    margin: 12px 0;
-    max-height: 340px;
-  }
-
-  .pinned-card {
-    background: rgba(255,255,255,0.85);
-    border: 1px solid rgba(148,163,184,0.22);
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 8px 32px rgba(15,23,42,0.06);
-  }
-
-  .pinned-card h3 {
-    margin: 0 0 10px;
+  .pinned-gallery .project-thumb {
+    width: 200px;
+    height: 200px;
+    border-radius: 12px;
+    object-fit: cover;
+    display: block;
+    background: rgba(148,163,184,0.12);
   }
 
   .project-image {
@@ -820,8 +808,18 @@
   }
 
   @media (max-width: 500px) {
-    .project-image {
-      max-height: 280px;
+    .pinned-gallery {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pinned-gallery .project-thumb {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+    }
+
+    .pinned-title {
+      font-size: 0.78rem;
     }
   }
 
@@ -849,13 +847,31 @@
       flex-direction: column;
     }
 
-    .index-item {
-      flex-direction: column;
+    .index-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .index-item-meta {
-      align-items: flex-start;
-      text-align: left;
+    .index-tile {
+      padding: 10px;
+    }
+
+    .index-thumb {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+    }
+
+    .index-tile-meta h3 {
+      font-size: 0.82rem;
+    }
+
+    .index-links {
+      gap: 5px;
+    }
+
+    .index-links a {
+      font-size: 0.62rem;
+      padding: 4px 7px;
     }
   }
 
@@ -909,7 +925,7 @@
   .about-section h3 {
     margin: 0;
     font-size: 1rem;
-    color: #1b140e;
+    color: color-mix(in srgb, #1b140e 80%, transparent);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
@@ -1016,52 +1032,34 @@
     width: 100%;
   }
 
-  .tabs-desktop > .tab,
-  .mobile-menu > .tab {
+  .mobile-tabbar {
+    display: none;
+  }
+
+  .tabs-desktop > .tab {
     border: 1px solid var(--border-strong);
     background: var(--surface-muted);
   }
 
-  .mobile-menu-btn {
-    display: none;
-    flex-direction: column;
-    gap: 5px;
-    background: transparent;
+  .mobile-tabbar-item {
     border: none;
+    background: transparent;
     cursor: pointer;
-    padding: 6px;
-    margin-left: auto;
-  }
-
-  .hamburger-icon {
-    width: 24px;
-    height: 2px;
-    background: #6a5747;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-
-  .mobile-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 var(--radius-md) var(--radius-md);
-    display: flex;
+    color: var(--text-muted);
+    display: inline-flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 4px;
-    padding: 8px;
-    box-shadow: 0 8px 16px rgba(15,23,42,0.1);
-    z-index: 1000;
+    font-size: 0.72rem;
+    padding: 8px 6px;
+    flex: 1;
+    min-width: 0;
   }
 
-  .tab-mobile {
-    width: 100%;
-    text-align: left;
-    justify-content: flex-start;
+  .mobile-tabbar-item.active {
+    color: var(--text);
+    font-weight: 700;
   }
 
   .footer {
@@ -1143,41 +1141,57 @@
     font-weight: 700;
   }
 
-  @media (max-width: 768px) {
-    .tabs-desktop {
-      display: none;
-    }
-
-    .mobile-menu-btn {
-      display: flex;
-    }
-
-    .mobile-menu {
-      width: calc(100vw - 40px);
-      max-width: none;
-      left: -2px;
-      right: -2px;
-    }
-  }
-
-  @media (max-width: 500px) {
-    .tabs {
-      overflow-x: auto;
-      margin-top: -6px;
-    }
+  @media (max-width: 1024px) {
     .tab {
       font-size: 0.8rem;
       padding: 8px 12px;
     }
+  }
+
+  @media (max-width: 768px) {
+    .tabs {
+      display: none;
+    }
+
+    .mobile-tabbar {
+      display: flex;
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 50;
+      gap: 4px;
+      padding: 8px;
+      padding-bottom: calc(8px + env(safe-area-inset-bottom));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--card-shadow);
+    }
+
+    .page {
+      padding-bottom: 116px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .tabs {
+      display: none;
+    }
+
+    .mobile-tabbar {
+      display: flex;
+    }
+  }
+
+  @media (max-width: 500px) {
     .footer {
       flex-direction: column;
       align-items: flex-start;
     }
-    .header {
-      padding: 16px 16px 14px;
-    }
     .page {
-      padding: 16px 16px 60px;
+      padding-left: 14px;
+      padding-right: 14px;
     }
   }
 
@@ -1204,3 +1218,6 @@
     }
   }
 </style>
+
+
+

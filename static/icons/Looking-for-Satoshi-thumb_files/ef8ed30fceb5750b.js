@@ -1,0 +1,5 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="3e91d5d6-0f07-fa4e-f37e-011f17a749c3")}catch(e){}}();
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,198308,e=>{"use strict";var t=e.i(7683),r=e.i(866313),i=e.i(378318);function o(e){let o,l,c=(0,r.c)(6),{children:n,address:u,authenticated:s}=e;return c[0]!==u||c[1]!==s?(o={address:u,authenticated:s},c[0]=u,c[1]=s,c[2]=o):o=c[2],c[3]!==n||c[4]!==o?(l=(0,t.jsx)(i.ServerWalletContext.Provider,{value:o,children:n}),c[3]=n,c[4]=o,c[5]=l):l=c[5],l}e.s(["ClientProvider",()=>o])}]);
+
+//# debugId=3e91d5d6-0f07-fa4e-f37e-011f17a749c3
+//# sourceMappingURL=c79848570a9595d8.js.map

@@ -1494,8 +1494,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;
-    max-height: 420px;
-    overflow-y: auto;
     padding-right: 4px;
   }
 
@@ -1887,10 +1885,12 @@
     .stats-row { grid-template-columns: repeat(2, 1fr); }
     .nft-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      gap: 10px;
+      max-height: none;
+      overflow-y: visible;
     }
     .nft-card {
-      padding: 6px;
+      padding: 8px;
       border-radius: 12px;
       gap: 6px;
     }
@@ -1914,7 +1914,7 @@
       gap: 2px;
     }
     .nft-name {
-      font-size: 0.7rem;
+      font-size: 0.72rem;
     }
     .nft-cids {
       font-size: 0.62rem;

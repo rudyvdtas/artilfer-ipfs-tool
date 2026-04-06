@@ -1,8 +1,9 @@
 <script>
   const items = [
-    { src: '/images/pinned-placeholder-1.jpg', alt: 'Gearchiveerd project 1' },
-    { src: '/images/pinned-placeholder-2.jpg', alt: 'Gearchiveerd project 2' },
-    { src: '/images/pinned-placeholder-3.jpg', alt: 'Gearchiveerd project 3' },
+    { src: '/thumbs/first-supper-small.jpg', alt: 'First Supper' },
+    { src: '/thumbs/the-cunegonde-dilemma-thumb.jpg', alt: 'The Cunégonde Dilemma' },
+    { src: '/thumbs/grifters-thumb.jpg', alt: 'Grifters' },
+    { src: '/thumbs/looking-for-satoshi-thumb.jpg', alt: 'Looking For Satoshi' },
   ]
 </script>
 
@@ -67,7 +68,6 @@
     image-rendering: -webkit-optimize-contrast;
   }
 
-  /* ─── Tablet (768px and above) ─── */
   @media (min-width: 768px) {
     .gallery-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -77,22 +77,13 @@
     }
   }
 
-  /* ─── Mobile (500px and below) ─── */
-  @media (max-width: 500px) {
+  @media (max-width: 480px) {
     .gallery-grid {
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
     .thumb-card {
       padding: 6px;
-    }
-  }
-
-  /* ─── Small Mobile (320px) ─── */
-  @media (max-width: 360px) {
-    .gallery-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
     }
   }
 </style>

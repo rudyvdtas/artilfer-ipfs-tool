@@ -55,11 +55,10 @@ async function listJobsFromFs() {
 }
 
 export const GET = withErrorHandler(async () => {
-  const isVercel = process.env.VERCEL === '1'
-
-  if (isVercel) {
-    // KV doesn't support enumeration without a separate index.
-    // Return empty list; a future job-index can be added here.
+  // Job enumeration is disabled in production: it would allow any caller to
+  // list all active scan jobs across all users (GDPR Art. 5(1)(b) + Art. 32).
+  // In local development it remains available for debugging.
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
     return json([])
   }
 
