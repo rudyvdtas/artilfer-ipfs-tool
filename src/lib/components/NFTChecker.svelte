@@ -845,6 +845,14 @@
     downloadCSV(indices)
   }
 
+  /**
+   * Ga terug naar 'done' state zodat de gebruiker meer keuzes kan maken
+   * en exporteren. Dit behoud alle bestaande scan resultaten.
+   */
+  function scanMore() {
+    step = 'done'
+  }
+
   // ─── Keyboard ─────────────────────────────────────────
 
   function onKeydown(e) {
@@ -1207,6 +1215,11 @@
           📋 ready2pin.csv
         </button>
       </div>
+
+      <!-- Scan More button -->
+      <button class="btn btn-ghost btn-scan-more" onclick={scanMore}>
+        🔄 Scan More
+      </button>
     </div>
   {/if}
 
@@ -1851,6 +1864,20 @@
   .btn-small { font-size: 0.75rem; padding: 5px 12px; }
 
   .btn-full { width: 100%; }
+
+  .btn-scan-more {
+    width: 100%;
+    margin-top: 8px;
+    background: rgba(34, 197, 94, 0.08);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    font-size: 0.82rem;
+  }
+
+  .btn-scan-more:hover:not(:disabled) {
+    background: rgba(34, 197, 94, 0.15);
+    color: #15803d;
+  }
 
   /* ── Responsive ──────────────────────────────── */
 

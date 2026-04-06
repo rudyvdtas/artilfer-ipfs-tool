@@ -42,7 +42,7 @@ export function exportManifest(result) {
 
 /**
  * Generate a Pinata-compatible CSV for "Import from IPFS".
- * Format: hash,name (one row per unique CID).
+ * Format: cid,name (one row per unique CID).
  * Works for ALL scan types.
  *
  * The name column uses the real content-type to pick the correct
@@ -53,7 +53,7 @@ export function exportManifest(result) {
  * @returns {string} CSV string
  */
 export function exportCsv(result) {
-  const rows = ['hash,name']
+  const rows = ['cid,name']
   const seen = new Set()
 
   for (const node of Object.values(result.nodes || {})) {
@@ -61,9 +61,11 @@ export function exportCsv(result) {
     if (seen.has(node.cid)) continue
     seen.add(node.cid)
 
+    const cid = normalizeCid(node.cid)
+    if (!cid) continue
+
     const name = resolveNodeName(node)
-    const safeName = /[,"]/.test(name) ? `"${name.replace(/"/g, '""')}"` : name
-    rows.push(`${node.cid},${safeName}`)
+    rows.push(`${cid},${escapeCsvValue(name)}`)
   }
 
   return rows.join('\n')
@@ -79,10 +81,47 @@ export function exportCsv(result) {
  */
 function resolveNodeName(node) {
   const ext = extensionFromContentType(node.contentType, node.kind)
-  const baseName = (node.name || node.cid.slice(0, 16))
+  const baseName = stripIpfsPrefix(node.name || '')
     .replace(/\.(json|txt|bin|html|htm)$/i, '')
     .toLowerCase()
   return ext ? `${baseName}${ext}` : baseName
+}
+
+function normalizeCid(value) {
+  const s = String(value ?? '').trim()
+  if (!s) return ''
+  
+  // Remove ipfs:// prefix
+  let cidPart = s.startsWith('ipfs://') ? s.slice('ipfs://'.length) : s
+  
+  // Remove everything after the first / (paths like /metadata.json, /3.json, etc.)
+  const slashIndex = cidPart.indexOf('/')
+  if (slashIndex !== -1) {
+    cidPart = cidPart.slice(0, slashIndex)
+  }
+  
+  return cidPart
+}
+
+function stripIpfsPrefix(value) {
+  const s = String(value ?? '').trim()
+  if (!s) return ''
+  
+  // Remove ipfs:// prefix
+  let result = s.startsWith('ipfs://') ? s.slice('ipfs://'.length) : s
+  
+  // Also remove any paths for names (but keep filename extension)
+  const lastSlashIndex = result.lastIndexOf('/')
+  if (lastSlashIndex !== -1) {
+    result = result.slice(lastSlashIndex + 1)
+  }
+  
+  return result
+}
+
+function escapeCsvValue(value) {
+  const s = String(value ?? '')
+  return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 /**

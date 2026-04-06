@@ -84,6 +84,20 @@ function normalizeAlchemyNFT(item) {
   const image     = imageOriginal || imageCached || null
   const thumbnail = thumbnailUrl  || imageCached || imageOriginal || null
 
+  // Collect all unique IPFS media URIs so the batch-coordinator safety net
+  // can inject them as nodes when the scanner only finds the metadata JSON
+  // without following child media references.
+  const mediaUriSet = new Set()
+  for (const uri of [
+    imageOriginal,
+    rawMeta.animation_url,
+    rawMeta.image_url,
+  ]) {
+    if (uri && typeof uri === 'string' && uri.startsWith('ipfs://')) {
+      mediaUriSet.add(uri.trim())
+    }
+  }
+
   return {
     id: `eth-${contract}-${tokenId}`,
     chain: 'ethereum',
@@ -93,6 +107,7 @@ function normalizeAlchemyNFT(item) {
     image,
     thumbnail,
     tokenURI,
+    formatUris: [...mediaUriSet],
     metadata: rawMeta,
   }
 }

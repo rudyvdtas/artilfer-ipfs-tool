@@ -76,6 +76,7 @@ function stripNFTsForStorage(nfts) {
     metadataCID: n.metadataCID ?? null,
     ipfsCIDs: n.ipfsCIDs ?? [],
     tokenURI: n.tokenURI ?? null,
+    formatUris: n.formatUris ?? [],
     // Metadata bewaren voor scan-fallback (kleine velden)
     metadata: n.metadata
       ? {

@@ -6,7 +6,7 @@ import { buildReadyToPinCSV } from '$lib/server/nft/export-builder.js'
  * GET /api/nft/export/ready2pin/{jobId}
  *
  * Downloads ready2pin.csv for a completed NFT batch scan.
- * CSV is formatted for direct import into Pinata (hash,name).
+ * CSV is formatted for direct import into Pinata (cid,name).
  */
 export async function GET({ params }) {
   const { jobId } = params

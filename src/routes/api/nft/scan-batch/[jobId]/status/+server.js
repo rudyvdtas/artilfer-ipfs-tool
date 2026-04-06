@@ -30,18 +30,37 @@ export async function GET({ params }) {
   }
 
   if (job.status === 'ready' && job.result) {
-    // Include summary + NFT list (without full scan trees to keep response small)
     response.result = {
       summary: job.result.summary,
-      nfts: (job.result.results || []).map((r) => ({
-        nftId: r.nftId,
-        name: r.name,
-        chain: r.chain,
-        status: r.status,
-        metadataCID: r.metadataCID || null,
-        scanSummary: r.scan?.summary || null,
-        error: r.error || r.reason || null,
-      })),
+      nfts: (job.result.results || []).map((r) => {
+        if (r.status !== 'success') {
+          return {
+            nftId: r.nftId,
+            name: r.name,
+            chain: r.chain,
+            status: r.status,
+            metadataCID: null,
+            scanSummary: null,
+            error: r.error || r.reason || null,
+          }
+        }
+        // Include scan nodes so client-side CSV export has all CIDs
+        const nodes = {}
+        for (const [key, node] of Object.entries(r.scan?.nodes || {})) {
+          if (!node.cid || node.error) continue
+          nodes[key] = { cid: node.cid, name: node.name, contentType: node.contentType, kind: node.kind }
+        }
+        return {
+          nftId: r.nftId,
+          name: r.name,
+          chain: r.chain,
+          status: r.status,
+          metadataCID: r.metadataCID || null,
+          scanSummary: r.scan?.summary || null,
+          scanNodes: nodes,
+          error: null,
+        }
+      }),
     }
   }
 

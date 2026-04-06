@@ -51,10 +51,12 @@ export function buildManifest(jobResult) {
 /**
  * ✅ Build a Pinata-compatible ready2pin.csv from a completed batch job result.
  *
- * Format: hash,name  (Pinata "Import from IPFS" standard)
+ * Format: cid,name  (Pinata "Import from IPFS" standard)
  * - One row per unique CID found across all successful NFT scans.
  * - Metadata CID and all child CIDs (images, media) are included.
  * - Duplicate CIDs across NFTs are deduplicated.
+ * - Collection NFTs (e.g. Async/SATS) keep their full ipfs://CID/path so
+ *   each token gets its own row instead of collapsing to the shared root CID.
  *
  * @param {{ results: Array, summary: object }} jobResult
  * @returns {string} CSV string
@@ -67,29 +69,37 @@ export function buildReadyToPinCSV(jobResult) {
     return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
 
-  const rows = ['hash,name']
+  const rows = ['cid,name']
   const seen = new Set()
 
   for (const r of results) {
     if (r.status !== 'success') continue
 
     // --- Metadata CID (root of the NFT scan) ---
-    if (r.metadataCID && !seen.has(r.metadataCID)) {
-      seen.add(r.metadataCID)
-      // Use the NFT name as a human-readable label for the metadata CID
-      const label = r.name ? escape(r.name) : ''
-      rows.push(`${r.metadataCID},${label}`)
+    // Use the full canonical URI as the dedup key so collection tokens with
+    // different sub-paths (e.g. /7/token.json vs /8/token.json) each get
+    // their own row.  Strip only the ipfs:// scheme prefix for the CSV value;
+    // keep the sub-path intact so Pinata can resolve the exact token file.
+    const rawMeta = String(r.metadataCID ?? '').trim()
+    if (rawMeta && !seen.has(rawMeta)) {
+      seen.add(rawMeta)
+      const cidValue = rawMeta.startsWith('ipfs://') ? rawMeta.slice('ipfs://'.length) : rawMeta
+      if (cidValue) {
+        const label = r.name ? escape(r.name) : ''
+        rows.push(`${cidValue},${label}`)
+      }
     }
 
     // --- All child CIDs discovered during the scan ---
     const nodes = r.scan?.nodes ?? {}
     for (const node of Object.values(nodes)) {
       if (!node.cid || node.error) continue
-      if (seen.has(node.cid)) continue
-      seen.add(node.cid)
+      const normalizedCid = normalizeCid(node.cid)
+      if (!normalizedCid || seen.has(normalizedCid)) continue
+      seen.add(normalizedCid)
 
       const name = resolveNodeName(node)
-      rows.push(`${node.cid},${escape(name)}`)
+      rows.push(`${normalizedCid},${escape(name)}`)
     }
   }
 
@@ -145,3 +155,26 @@ function buildMediaUris(r) {
 export function manifestToJSON(manifest) {
   return JSON.stringify(manifest, null, 2)
 }
+
+/**
+ * Normalize a CID string - remove ipfs:// prefix and any paths
+ * Similar to the normalizeCid function in exporter.js
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizeCid(value) {
+  const s = String(value ?? '').trim()
+  if (!s) return ''
+  
+  // Remove ipfs:// prefix
+  let cidPart = s.startsWith('ipfs://') ? s.slice('ipfs://'.length) : s
+  
+  // Remove everything after the first / (paths like /metadata.json, /3.json, etc.)
+  const slashIndex = cidPart.indexOf('/')
+  if (slashIndex !== -1) {
+    cidPart = cidPart.slice(0, slashIndex)
+  }
+  
+  return cidPart
+}
+

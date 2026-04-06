@@ -129,6 +129,49 @@ export async function scanNFTBatch(jobId, nfts) {
         }
       }
 
+      // Safety net: when the scanner found <=1 node (binary artifact scanned
+      // directly — no child references), inject all known media CIDs so the
+      // export always contains every archivable CID for this NFT.
+      //
+      // Source priority:
+      //   1. nft.formatUris — populated from formats[] by tezos-fetcher (most complete)
+      //   2. on-chain fields — artifactUri / displayUri / thumbnailUri / image
+      if (Object.keys(scanResult.nodes).length <= 1) {
+        const uriSources = [
+          // Tezos formats[] — most complete source (injected by tezos-fetcher)
+          ...(Array.isArray(nft.formatUris) ? nft.formatUris.map((uri) => ({ uri, name: 'format' })) : []),
+          // Tezos on-chain fields
+          { uri: nft.metadata?.artifactUri,   name: 'artifact'   },
+          { uri: nft.metadata?.displayUri,    name: 'display'    },
+          { uri: nft.metadata?.thumbnailUri,  name: 'thumbnail'  },
+          // Ethereum / universal fields
+          { uri: nft.metadata?.image,         name: 'image'      },
+          { uri: nft.metadata?.image_url,     name: 'image'      },
+          { uri: nft.metadata?.animation_url, name: 'animation'  },
+        ]
+        for (const { uri, name } of uriSources) {
+          if (!uri || typeof uri !== 'string') continue
+          const stripped = uri.startsWith('ipfs://') ? uri.slice('ipfs://'.length) : uri
+          const cid = stripped.split('/')[0]
+          if (!cid) continue
+          const canonical = `ipfs://${cid}`
+          if (scanResult.nodes[canonical]) continue
+          scanResult.nodes[canonical] = {
+            cid,
+            path: '',
+            canonical,
+            name,
+            kind: 'binary',
+            contentType: '',
+            size: 0,
+            url: null,
+            children: [],
+            depth: 1,
+            error: null,
+          }
+        }
+      }
+
       results.push({
         nftId: nft.id,
         name: nft.name,

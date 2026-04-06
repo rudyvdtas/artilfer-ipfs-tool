@@ -20,14 +20,24 @@ const MAX_PAGES = 10   // veiligheidsgrens: max 5000 tokens
 function normalizeTzKT(t) {
   const meta = t.token?.metadata || {}
 
-  // ✅ The on-chain metadataUri points to the metadata JSON (e.g. ipfs://Qmb2M2...)
-  // TzKT exposes this as t.token.metadata itself, but the *source* URI lives in
-  // t.token.metadata.uri or t.token.tokenUri (if present).
-  // Priority for scan target: metadata JSON URI > displayUri > artifactUri
-  const metadataUri =
-    t.token?.metadata?.uri ||
-    t.token?.metadataUri ||
-    null
+  // TzKT decodes on-chain metadata internally and never exposes the metadata
+  // JSON pointer (e.g. ipfs://QmXBQn...) — it only returns the decoded fields.
+  // The canonical source for all archivable CIDs is meta.formats[], which
+  // contains every IPFS URI for this token (artifact, display, thumbnail).
+  //
+  // Priority for scan target:
+  //   1. meta.uri      — explicit metadata JSON pointer (fxhash / custom contracts)
+  //   2. meta.artifactUri — the primary media file (OBJKT/hic et nunc standard)
+  //   3. meta.displayUri  — last resort
+  const metadataUri = meta.uri || null
+
+  // Extract all unique IPFS URIs from formats[] so the batch-coordinator
+  // can inject them as scan nodes even when the scanner only finds the binary.
+  const formatUris = Array.isArray(meta.formats)
+    ? meta.formats
+        .map((f) => (typeof f?.uri === 'string' ? f.uri.trim() : null))
+        .filter((uri) => uri && uri.startsWith('ipfs://'))
+    : []
 
   return {
     id: `tez-${t.token?.contract?.address}-${t.token?.tokenId}`,
@@ -35,7 +45,7 @@ function normalizeTzKT(t) {
     contract: t.token?.contract?.address || '',
     tokenId: t.token?.tokenId || '',
     name: meta.name || meta.symbol || `Token ${t.token?.tokenId}`,
-    // ✅ Best display image: displayUri (web-sized) > thumbnailUri > artifactUri
+    // Best display image: displayUri (web-sized) > thumbnailUri > artifactUri
     image:
       meta.displayUri ||
       meta.thumbnailUri ||
@@ -44,9 +54,13 @@ function normalizeTzKT(t) {
       null,
     thumbnail: meta.thumbnailUri || null,
     artifactUri: meta.artifactUri || null,
-    // ✅ tokenURI = the metadata JSON CID (what the scanner should scan first)
-    // Fall back to artifactUri only if no metadata URI exists
+    // tokenURI = best scan entry point.
+    // For OBJKT tokens: artifactUri (TzKT never gives us the metadata JSON CID).
+    // For fxhash/custom: meta.uri points to the metadata JSON directly.
     tokenURI: metadataUri || meta.artifactUri || meta.displayUri || null,
+    // formatUris = all IPFS media CIDs known from formats[]
+    // Used by batch-coordinator as a guaranteed fallback for the export.
+    formatUris,
     metadata: meta,
   }
 }
